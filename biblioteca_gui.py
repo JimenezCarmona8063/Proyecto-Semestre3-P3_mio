@@ -197,6 +197,7 @@ class BibliotecaApp(tk.Tk):
 
         # referencias a imágenes para que no se borren
         self.imagenes_libros = []
+        self.demo_cargado = False
 
         self._crear_layout()
         self.cargar_datos_demo()  # llena con libros reales
@@ -236,7 +237,11 @@ class BibliotecaApp(tk.Tk):
     # --------- Datos de demo: libros reales ---------
 
     def cargar_datos_demo(self):
-        """Llena la biblioteca con algunos libros reales."""
+        """Llena la biblioteca con libros, usuarios y movimientos predefinidos."""
+
+        if self.demo_cargado:
+            return
+        self.demo_cargado = True
 
         demo_libros = [
             ("1001", "Cien años de soledad", "Gabriel García Márquez", ["Novela", "Realismo mágico"]),
@@ -247,10 +252,83 @@ class BibliotecaApp(tk.Tk):
             ("1006", "Harry Potter y la piedra filosofal", "J.K. Rowling", ["Fantasía"]),
             ("1007", "Fahrenheit 451", "Ray Bradbury", ["Ciencia ficción"]),
             ("1008", "Orgullo y prejuicio", "Jane Austen", ["Romance"]),
+            ("1009", "La sombra del viento", "Carlos Ruiz Zafón", ["Misterio", "Novela"]),
+            ("1010", "Sapiens", "Yuval Noah Harari", ["Historia", "Ensayo"]),
+            ("1011", "Don Quijote de la Mancha", "Miguel de Cervantes", ["Clásico", "Aventura"]),
+            ("1012", "La tregua", "Mario Benedetti", ["Romance", "Drama"]),
+            ("1013", "La casa de los espíritus", "Isabel Allende", ["Realismo mágico", "Saga familiar"]),
+            ("1014", "Breves respuestas a las grandes preguntas", "Stephen Hawking", ["Divulgación", "Ciencia"]),
+            ("1015", "Rayuela", "Julio Cortázar", ["Novela", "Experimental"]),
         ]
 
         for libro_id, titulo, autor, generos in demo_libros:
             libros[libro_id] = Libro(libro_id, titulo, autor, generos)
+
+        demo_usuarios = [
+            ("U001", "Mariana Torres", ["Novela", "Romance"]),
+            ("U002", "Ricardo Patiño", ["Fantasía", "Ciencia ficción"]),
+            ("U003", "Daniela López", ["Infantil", "Filosofía"]),
+            ("U004", "Sofía Méndez", ["Historia", "Ensayo"]),
+            ("U005", "Andrés Herrera", ["Computación", "Algoritmos"]),
+        ]
+
+        registro_fecha = "01/09/2023"
+        for usuario_id, nombre, generos in demo_usuarios:
+            usuario = Usuario(usuario_id, nombre, generos)
+            usuario.historial.agregar(f"Registro en la plataforma el {registro_fecha}")
+            usuarios[usuario_id] = usuario
+
+        historial_extra = {
+            "U001": [
+                "Solicitó recomendaciones de realismo mágico",
+                "Participó en el club de lectura mensual",
+            ],
+            "U002": [
+                "Descargó guía de estudio sobre distopías",
+            ],
+            "U004": [
+                "Asistió a taller de historia latinoamericana",
+            ],
+        }
+        for usuario_id, eventos in historial_extra.items():
+            usuario = usuarios.get(usuario_id)
+            if not usuario:
+                continue
+            for evento in eventos:
+                usuario.historial.agregar(evento)
+
+        prestamos_demo = [
+            ("1001", "U001", "05/09/2023", "19/09/2023"),
+            ("1003", "U002", "10/09/2023", "24/09/2023"),
+            ("1004", "U003", "12/09/2023", "26/09/2023"),
+        ]
+
+        for libro_id, usuario_id, f_p, f_d in prestamos_demo:
+            libro = libros.get(libro_id)
+            usuario = usuarios.get(usuario_id)
+            if not libro or not usuario:
+                continue
+            prestamo = Prestamo(libro_id, usuario_id, f_p, f_d)
+            prestamos_activos.agregar(prestamo)
+            libro.disponible = False
+            libro.popularidad += 1
+            usuario.libros_actuales.add(libro_id)
+            usuario.historial.agregar(f"Préstamo de '{libro.titulo}' el {f_p}")
+
+        reservas_demo = [
+            (2, Reserva("U004", "1003", 2)),
+            (1, Reserva("U005", "1005", 1)),
+        ]
+        for prioridad, reserva in reservas_demo:
+            reservas.insertar(prioridad, reserva)
+
+        notis_iniciales = [
+            "Datos de demostración cargados",
+            "Hay nuevos talleres disponibles para usuarios registrados",
+            "Recuerda devolver tus préstamos a tiempo",
+        ]
+        for texto in notis_iniciales:
+            notificaciones.encolar(texto)
 
     # ---------------- utilidades GUI ----------------
 
