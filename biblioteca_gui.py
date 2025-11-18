@@ -8,6 +8,7 @@ from tkinter import ttk, messagebox
 from datetime import datetime
 
 
+
 # ---------------- ESTRUCTURAS DE DATOS -------------
 
 class Cola:
@@ -186,6 +187,15 @@ reservas = ColaPrioridad()
 notificaciones = Cola()
 
 
+def registrar_historial(usuario_id, descripcion):
+    """Agrega una entrada descriptiva al historial de un usuario si existe."""
+
+    usuario = usuarios.get(usuario_id)
+    if not usuario:
+        return
+    usuario.historial.agregar(descripcion)
+
+
 # ---------------- INTERFAZ GRÁFICA ------------------
 
 
@@ -219,7 +229,6 @@ class BibliotecaApp(tk.Tk):
             ("Préstamos / Devoluciones", self.mostrar_prestamos),
             ("Historial de Usuarios", self.mostrar_historial),
             ("Notificaciones", self.mostrar_notificaciones),
-            ("Búsquedas", self.mostrar_busquedas),
         ]
         for texto, comando in botones:
             ttk.Button(frame_menu, text=texto, command=comando).pack(fill="x", pady=3)
@@ -263,6 +272,8 @@ class BibliotecaApp(tk.Tk):
 
         for libro_id, titulo, autor, generos in demo_libros:
             libros[libro_id] = Libro(libro_id, titulo, autor, generos)
+
+        self._generar_catalogo_masivo()
 
         demo_usuarios = [
             ("U001", "Mariana Torres", ["Novela", "Romance"]),
@@ -330,6 +341,43 @@ class BibliotecaApp(tk.Tk):
         for texto in notis_iniciales:
             notificaciones.encolar(texto)
 
+    def _generar_catalogo_masivo(self):
+        """Genera automáticamente más de dos mil libros adicionales."""
+
+        generos_genericos = [
+            "Tecnología",
+            "Historia",
+            "Aventura",
+            "Educativo",
+            "Biografía",
+            "Fantasía",
+            "Autoayuda",
+            "Ciencia",
+        ]
+        autores_genericos = [
+            "Colección Editorial Aurora",
+            "Equipo Documental Horizonte",
+            "Investigadores del Cono Sur",
+            "Red de Escritores Urbanos",
+            "Laboratorio de Narrativas Digitales",
+            "Archivo Cultural Andino",
+        ]
+
+        total_deseado = 2100  # se suman a los libros base para superar 2000 registros
+        creados = 0
+        idx = 1
+        while creados < total_deseado:
+            libro_id = f"DL{idx:04d}"
+            if libro_id in libros:
+                idx += 1
+                continue
+            titulo = f"Compendio Digital #{idx:04d}"
+            autor = autores_genericos[(idx - 1) % len(autores_genericos)]
+            genero = generos_genericos[(idx - 1) % len(generos_genericos)]
+            libros[libro_id] = Libro(libro_id, titulo, autor, [genero])
+            creados += 1
+            idx += 1
+
     # ---------------- utilidades GUI ----------------
 
     def limpiar_contenido(self):
@@ -362,12 +410,11 @@ class BibliotecaApp(tk.Tk):
         texto = (
             "Bienvenido.\n\n"
             "Use el menú de la izquierda para acceder a:\n"
-            "- Gestión de Libros\n"
+            "- Gestión de Libros (ahora incluye búsqueda integrada)\n"
             "- Gestión de Usuarios\n"
             "- Préstamos / Devoluciones\n"
             "- Historial de Usuarios\n"
             "- Notificaciones (Cola FIFO)\n"
-            "- Búsquedas (Algoritmos sobre cadenas)\n"
         )
         self.escribir_en_texto(txt, texto)
 
@@ -386,16 +433,22 @@ class BibliotecaApp(tk.Tk):
         ttk.Label(frm, text="Título:").grid(row=1, column=0, sticky="e")
         ttk.Label(frm, text="Autor:").grid(row=2, column=0, sticky="e")
         ttk.Label(frm, text="Géneros (coma):").grid(row=3, column=0, sticky="e")
+        ttk.Label(frm, text="ID Usuario actividad:").grid(row=4, column=0, sticky="e")
+        ttk.Label(frm, text="Texto de búsqueda:").grid(row=5, column=0, sticky="e")
 
         id_entry = ttk.Entry(frm, width=15)
         titulo_entry = ttk.Entry(frm, width=35)
         autor_entry = ttk.Entry(frm, width=25)
         generos_entry = ttk.Entry(frm, width=35)
+        usuario_accion_entry = ttk.Entry(frm, width=15)
+        busqueda_entry = ttk.Entry(frm, width=35)
 
         id_entry.grid(row=0, column=1, padx=5, pady=2, sticky="w")
         titulo_entry.grid(row=1, column=1, padx=5, pady=2, sticky="w")
         autor_entry.grid(row=2, column=1, padx=5, pady=2, sticky="w")
         generos_entry.grid(row=3, column=1, padx=5, pady=2, sticky="w")
+        usuario_accion_entry.grid(row=4, column=1, padx=5, pady=2, sticky="w")
+        busqueda_entry.grid(row=5, column=1, padx=5, pady=2, sticky="w")
 
         txt = self.crear_area_resultados()
 
@@ -412,6 +465,12 @@ class BibliotecaApp(tk.Tk):
             generos = [g.strip() for g in generos_entry.get().split(",") if g.strip()]
             libros[libro_id] = Libro(libro_id, titulo, autor, generos)
             notificaciones.encolar(f"Nuevo libro registrado: {titulo}")
+            usuario_hist = usuario_accion_entry.get().strip()
+            if usuario_hist:
+                registrar_historial(
+                    usuario_hist,
+                    f"Agregó el libro '{titulo}' (ID {libro_id}) el {datetime.now().strftime('%d/%m/%Y')}",
+                )
             messagebox.showinfo("OK", "Libro registrado.")
             self.listar_libros_texto(txt)
 
@@ -419,7 +478,7 @@ class BibliotecaApp(tk.Tk):
             self.listar_libros_texto(txt)
 
         def buscar():
-            patron = titulo_entry.get().strip()
+            patron = busqueda_entry.get().strip()
             resultados = []
             for libro in libros.values():
                 texto = f"{libro.titulo} {libro.autor} {' '.join(libro.generos)}"
@@ -433,12 +492,25 @@ class BibliotecaApp(tk.Tk):
                     disp = "Disponible" if l.disponible else "Prestado"
                     s += f"[{l.id}] {l.titulo} - {l.autor} | {disp}\n"
                 self.escribir_en_texto(txt, s)
+            usuario_hist = usuario_accion_entry.get().strip()
+            if usuario_hist and patron:
+                registrar_historial(
+                    usuario_hist,
+                    f"Buscó '{patron}' en la gestión de libros y obtuvo {len(resultados)} resultado(s)",
+                )
 
         def eliminar():
             libro_id = id_entry.get().strip()
             if libro_id in libros:
+                eliminado = libros[libro_id]
                 del libros[libro_id]
                 notificaciones.encolar(f"Libro eliminado: {libro_id}")
+                usuario_hist = usuario_accion_entry.get().strip()
+                if usuario_hist:
+                    registrar_historial(
+                        usuario_hist,
+                        f"Retiró el libro '{eliminado.titulo}' (ID {libro_id}) del catálogo",
+                    )
                 messagebox.showinfo("OK", "Libro eliminado.")
                 self.listar_libros_texto(txt)
             else:
@@ -448,11 +520,11 @@ class BibliotecaApp(tk.Tk):
             self.mostrar_galeria_portadas()
 
         botones = ttk.Frame(frm)
-        botones.grid(row=4, column=0, columnspan=2, pady=5)
+        botones.grid(row=6, column=0, columnspan=2, pady=5)
 
         ttk.Button(botones, text="Registrar", command=registrar).grid(row=0, column=0, padx=5)
         ttk.Button(botones, text="Listar todos", command=listar).grid(row=0, column=1, padx=5)
-        ttk.Button(botones, text="Buscar (usa Título)", command=buscar).grid(row=0, column=2, padx=5)
+        ttk.Button(botones, text="Buscar libro", command=buscar).grid(row=0, column=2, padx=5)
         ttk.Button(botones, text="Eliminar por ID", command=eliminar).grid(row=0, column=3, padx=5)
         ttk.Button(botones, text="Galería de portadas", command=ver_galeria).grid(row=0, column=4, padx=5)
 
@@ -534,6 +606,7 @@ class BibliotecaApp(tk.Tk):
             nombre = nombre_entry.get().strip()
             generos = [g.strip() for g in generos_entry.get().split(",") if g.strip()]
             usuarios[usuario_id] = Usuario(usuario_id, nombre, generos)
+            registrar_historial(usuario_id, f"Usuario registrado el {datetime.now().strftime('%d/%m/%Y')}")
             notificaciones.encolar(f"Nuevo usuario registrado: {nombre}")
             messagebox.showinfo("OK", "Usuario registrado.")
             self.listar_usuarios_texto(txt)
@@ -711,9 +784,13 @@ class BibliotecaApp(tk.Tk):
             vacio = False
             libro = libros.get(p.libro_id)
             usuario = usuarios.get(p.usuario_id)
-            s += f"Libro: {libro.titulo if libro else p.libro_id} | "
-            s += f"Usuario: {usuario.nombre if usuario else p.usuario_id} | "
-            s += f"{p.fecha_prestamo} -> {p.fecha_devolucion}\n"
+            titulo = libro.titulo if libro else p.libro_id
+            autor = libro.autor if libro else "Autor no registrado"
+            nombre_usuario = usuario.nombre if usuario else p.usuario_id
+            s += f"Usuario: {nombre_usuario} (ID {p.usuario_id})\n"
+            s += f"Libro: {titulo} — {autor}\n"
+            s += f"Fechas: Préstamo {p.fecha_prestamo} | Devolución {p.fecha_devolucion}\n"
+            s += "-" * 60 + "\n"
         if vacio:
             s = "No hay préstamos activos."
         self.escribir_en_texto(txt, s)
@@ -758,7 +835,7 @@ class BibliotecaApp(tk.Tk):
             if not u:
                 messagebox.showwarning("Error", "Usuario no encontrado.")
                 return
-            s = f"Historial de {u.nombre}:\n\n"
+            s = f"Historial de {u.nombre} (ID {u.id}):\n\n"
             vacio = True
             for ev in u.historial:
                 s += "- " + ev + "\n"
@@ -805,60 +882,6 @@ class BibliotecaApp(tk.Tk):
             while not notificaciones.esta_vacia():
                 s += "- " + notificaciones.desencolar() + "\n"
             self.escribir_en_texto(txt, s)
-
-    # ---------------- Búsquedas globales --------------
-
-    def mostrar_busquedas(self):
-        self.limpiar_contenido()
-        ttk.Label(self.frame_contenido, text="Consultas de Búsqueda", font=("Arial", 14, "bold")).grid(
-            row=0, column=0, sticky="w"
-        )
-
-        frm = ttk.Frame(self.frame_contenido)
-        frm.grid(row=1, column=0, sticky="nwe")
-
-        ttk.Label(frm, text="Texto a buscar:").grid(row=0, column=0, sticky="e")
-        patron_entry = ttk.Entry(frm, width=35)
-        patron_entry.grid(row=0, column=1, padx=5, pady=2, sticky="w")
-
-        txt = self.crear_area_resultados()
-
-        def buscar_libros_gui():
-            patron = patron_entry.get().strip()
-            resultados = []
-            for libro in libros.values():
-                texto = f"{libro.titulo} {libro.autor} {' '.join(libro.generos)}"
-                if contiene_patron(texto, patron):
-                    resultados.append(libro)
-            if not resultados:
-                self.escribir_en_texto(txt, "No se encontraron libros.")
-            else:
-                s = "Resultados de búsqueda de libros:\n\n"
-                for l in resultados:
-                    s += f"- {l.titulo} ({l.autor})\n"
-                self.escribir_en_texto(txt, s)
-
-        def buscar_usuarios_gui():
-            patron = patron_entry.get().strip()
-            resultados = []
-            for u in usuarios.values():
-                texto = f"{u.id} {u.nombre}"
-                if contiene_patron(texto, patron):
-                    resultados.append(u)
-            if not resultados:
-                self.escribir_en_texto(txt, "No se encontraron usuarios.")
-            else:
-                s = "Resultados de búsqueda de usuarios:\n\n"
-                for u in resultados:
-                    s += f"- [{u.id}] {u.nombre}\n"
-                self.escribir_en_texto(txt, s)
-
-        botones = ttk.Frame(frm)
-        botones.grid(row=1, column=0, columnspan=2, pady=5)
-
-        ttk.Button(botones, text="Buscar en libros", command=buscar_libros_gui).grid(row=0, column=0, padx=5)
-        ttk.Button(botones, text="Buscar en usuarios", command=buscar_usuarios_gui).grid(row=0, column=1, padx=5)
-
 
 # -------------------- MAIN -------------------------
 

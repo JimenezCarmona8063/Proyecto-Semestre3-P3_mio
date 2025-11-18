@@ -7,7 +7,7 @@ Este repositorio contiene una aplicación de escritorio construida con **Tkinter
 - Préstamos y devoluciones
 - Historial del usuario
 - Notificaciones (cola FIFO)
-- Consultas de búsqueda (sobre cadenas)
+- Búsqueda integrada en la sección de libros (usa coincidencias parciales sobre cadenas)
 
 Cada sección demuestra el uso de estructuras de datos personalizadas como listas enlazadas, colas y colas de prioridad.
 
@@ -28,7 +28,7 @@ Esto abrirá la interfaz gráfica descrita en el documento.
 
 Al iniciarse, la aplicación carga automáticamente:
 
-- 15 libros de distintos géneros para que la galería y los listados luzcan completos.
+- Un catálogo extendido con más de 2 100 libros para que las búsquedas siempre arrojen resultados.
 - 5 usuarios con historiales poblados y preferencias de lectura.
 - Préstamos activos, reservas en la cola de prioridad y notificaciones iniciales.
 
