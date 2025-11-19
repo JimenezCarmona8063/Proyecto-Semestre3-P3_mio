@@ -224,6 +224,7 @@ class BibliotecaApp(tk.Tk):
         ttk.Label(frame_menu, text="Menú Principal", font=("Arial", 12, "bold")).pack(pady=5)
 
         botones = [
+            ("Inicio / Registro", self.mostrar_inicio_registro),
             ("Gestión de Libros", self.mostrar_libros),
             ("Gestión de Usuarios", self.mostrar_usuarios),
             ("Préstamos / Devoluciones", self.mostrar_prestamos),
@@ -241,7 +242,7 @@ class BibliotecaApp(tk.Tk):
         self.frame_contenido.rowconfigure(1, weight=1)
         self.frame_contenido.columnconfigure(0, weight=1)
 
-        self.mostrar_bienvenida()
+        self.mostrar_inicio_registro()
 
     # --------- Datos de demo: libros reales ---------
 
@@ -398,25 +399,85 @@ class BibliotecaApp(tk.Tk):
 
     # --------- Secciones de la interfaz ---------
 
-    def mostrar_bienvenida(self):
+    def mostrar_inicio_registro(self):
+        """Pantalla inicial: introduce un menú con formulario de registro."""
+
         self.limpiar_contenido()
         ttk.Label(
             self.frame_contenido,
-            text="SISTEMA DE GESTIÓN DE BIBLIOTECA DIGITAL",
+            text="MENÚ PRINCIPAL Y REGISTRO",
             font=("Arial", 16, "bold"),
         ).grid(row=0, column=0, sticky="w", pady=10)
 
+        frm = ttk.Frame(self.frame_contenido)
+        frm.grid(row=1, column=0, sticky="nwe")
+
+        ttk.Label(frm, text="ID Usuario:").grid(row=0, column=0, sticky="e")
+        ttk.Label(frm, text="Nombre completo:").grid(row=1, column=0, sticky="e")
+        ttk.Label(frm, text="Géneros preferidos (coma):").grid(row=2, column=0, sticky="e")
+
+        id_entry = ttk.Entry(frm, width=15)
+        nombre_entry = ttk.Entry(frm, width=30)
+        generos_entry = ttk.Entry(frm, width=40)
+
+        id_entry.grid(row=0, column=1, padx=5, pady=2, sticky="w")
+        nombre_entry.grid(row=1, column=1, padx=5, pady=2, sticky="w")
+        generos_entry.grid(row=2, column=1, padx=5, pady=2, sticky="w")
+
         txt = self.crear_area_resultados()
-        texto = (
-            "Bienvenido.\n\n"
-            "Use el menú de la izquierda para acceder a:\n"
-            "- Gestión de Libros (ahora incluye búsqueda integrada)\n"
-            "- Gestión de Usuarios\n"
-            "- Préstamos / Devoluciones\n"
-            "- Historial de Usuarios\n"
-            "- Notificaciones (Cola FIFO)\n"
+
+        def mostrar_info_bienvenida(extra=""):
+            texto = (
+                "Bienvenido al sistema integral de biblioteca digital.\n\n"
+                "Desde este menú puedes registrarte y luego navegar a:\n"
+                "- Gestión de Libros (registrar, buscar y eliminar títulos)\n"
+                "- Gestión de Usuarios (administrar perfiles completos)\n"
+                "- Préstamos / Devoluciones (movimientos con fechas)\n"
+                "- Historial (acciones detalladas de cada usuario)\n"
+                "- Notificaciones (seguimiento de altas, bajas y movimientos)\n\n"
+                f"Usuarios registrados: {len(usuarios)} | Libros cargados: {len(libros)}\n"
+            )
+            if extra:
+                texto += "\n" + extra
+            self.escribir_en_texto(txt, texto)
+
+        def registrar_usuario_inicio():
+            usuario_id = id_entry.get().strip()
+            if not usuario_id:
+                messagebox.showwarning("Error", "El ID de usuario es obligatorio.")
+                return
+            if usuario_id in usuarios:
+                messagebox.showwarning("Error", "Ya existe un usuario con ese ID.")
+                return
+            nombre = nombre_entry.get().strip()
+            if not nombre:
+                messagebox.showwarning("Error", "El nombre es obligatorio.")
+                return
+            generos = [g.strip() for g in generos_entry.get().split(",") if g.strip()]
+            nuevo_usuario = Usuario(usuario_id, nombre, generos)
+            fecha_registro = datetime.now().strftime("%d/%m/%Y")
+            nuevo_usuario.historial.agregar(f"Registro inicial desde el menú principal el {fecha_registro}")
+            usuarios[usuario_id] = nuevo_usuario
+            notificaciones.encolar(f"Nuevo registro de usuario: {nombre}")
+            messagebox.showinfo("Registro", "Usuario creado correctamente.")
+            mostrar_info_bienvenida(f"Último registro: {nombre} ({usuario_id})")
+            id_entry.delete(0, tk.END)
+            nombre_entry.delete(0, tk.END)
+            generos_entry.delete(0, tk.END)
+
+        botones = ttk.Frame(frm)
+        botones.grid(row=3, column=0, columnspan=2, pady=5)
+
+        ttk.Button(botones, text="Registrar usuario", command=registrar_usuario_inicio).grid(
+            row=0, column=0, padx=5
         )
-        self.escribir_en_texto(txt, texto)
+        ttk.Button(
+            botones,
+            text="Limpiar",
+            command=lambda: [id_entry.delete(0, tk.END), nombre_entry.delete(0, tk.END), generos_entry.delete(0, tk.END)],
+        ).grid(row=0, column=1, padx=5)
+
+        mostrar_info_bienvenida()
 
     # ------------------ Libros -------------------
 
