@@ -525,59 +525,38 @@ class BibliotecaApp(tk.Tk):
             row=0, column=0, sticky="w"
         )
 
-        frm = ttk.Frame(self.frame_contenido)
-        frm.grid(row=1, column=0, sticky="nwe")
+        barra_busqueda = ttk.Frame(self.frame_contenido)
+        barra_busqueda.grid(row=1, column=0, sticky="ew", pady=(0, 5))
+        barra_busqueda.columnconfigure(0, weight=1)
 
-        ttk.Label(frm, text="ID Libro:").grid(row=0, column=0, sticky="e")
-        ttk.Label(frm, text="Título:").grid(row=1, column=0, sticky="e")
-        ttk.Label(frm, text="Autor:").grid(row=2, column=0, sticky="e")
-        ttk.Label(frm, text="Géneros (coma):").grid(row=3, column=0, sticky="e")
-        ttk.Label(frm, text="ID Usuario actividad:").grid(row=4, column=0, sticky="e")
-        ttk.Label(frm, text="Texto de búsqueda:").grid(row=5, column=0, sticky="e")
+        ttk.Label(barra_busqueda, text="Buscar libro:").grid(row=0, column=1, sticky="e", padx=5)
+        busqueda_entry = ttk.Entry(barra_busqueda, width=35)
+        busqueda_entry.grid(row=0, column=2, padx=5, pady=2, sticky="e")
+        btn_buscar = ttk.Button(barra_busqueda, text="Buscar")
+        btn_buscar.grid(row=0, column=3, padx=5)
+        btn_ver_todo = ttk.Button(barra_busqueda, text="Ver todo")
+        btn_ver_todo.grid(row=0, column=4, padx=5)
 
-        id_entry = ttk.Entry(frm, width=15)
-        titulo_entry = ttk.Entry(frm, width=35)
-        autor_entry = ttk.Entry(frm, width=25)
-        generos_entry = ttk.Entry(frm, width=35)
-        usuario_accion_entry = ttk.Entry(frm, width=15)
-        busqueda_entry = ttk.Entry(frm, width=35)
+        formulario = ttk.LabelFrame(self.frame_contenido, text="Acciones rápidas")
+        formulario.grid(row=2, column=0, sticky="nwe", pady=5)
+        formulario.columnconfigure(1, weight=1)
 
-        id_entry.grid(row=0, column=1, padx=5, pady=2, sticky="w")
-        titulo_entry.grid(row=1, column=1, padx=5, pady=2, sticky="w")
-        autor_entry.grid(row=2, column=1, padx=5, pady=2, sticky="w")
-        generos_entry.grid(row=3, column=1, padx=5, pady=2, sticky="w")
-        usuario_accion_entry.grid(row=4, column=1, padx=5, pady=2, sticky="w")
-        busqueda_entry.grid(row=5, column=1, padx=5, pady=2, sticky="w")
+        ttk.Label(formulario, text="ID para eliminar:").grid(row=0, column=0, sticky="e", padx=5, pady=2)
+        id_eliminar_entry = ttk.Entry(formulario, width=20)
+        id_eliminar_entry.grid(row=0, column=1, sticky="w", padx=5, pady=2)
+        ttk.Label(formulario, text="ID Usuario (historial opcional):").grid(
+            row=1, column=0, sticky="e", padx=5, pady=2
+        )
+        usuario_accion_entry = ttk.Entry(formulario, width=20)
+        usuario_accion_entry.grid(row=1, column=1, sticky="w", padx=5, pady=2)
 
-        txt = self.crear_area_resultados()
+        txt = self.crear_area_resultados(row=3)
 
-        def registrar():
-            libro_id = id_entry.get().strip()
-            if not libro_id:
-                messagebox.showwarning("Error", "ID obligatorio.")
-                return
-            if libro_id in libros:
-                messagebox.showwarning("Error", "Ya existe un libro con ese ID.")
-                return
-            titulo = titulo_entry.get().strip()
-            autor = autor_entry.get().strip()
-            generos = [g.strip() for g in generos_entry.get().split(",") if g.strip()]
-            libros[libro_id] = Libro(libro_id, titulo, autor, generos)
-            notificaciones.encolar(f"Nuevo libro registrado: {titulo}")
-            usuario_hist = usuario_accion_entry.get().strip()
-            if usuario_hist:
-                registrar_historial(
-                    usuario_hist,
-                    f"Agregó el libro '{titulo}' (ID {libro_id}) el {datetime.now().strftime('%d/%m/%Y')}",
-                )
-            messagebox.showinfo("OK", "Libro registrado.")
-            self.listar_libros_texto(txt)
-
-        def listar():
-            self.listar_libros_texto(txt)
-
-        def buscar():
+        def ejecutar_busqueda():
             patron = busqueda_entry.get().strip()
+            if not patron:
+                self.listar_libros_texto(txt)
+                return
             resultados = []
             for libro in libros.values():
                 texto = f"{libro.titulo} {libro.autor} {' '.join(libro.generos)}"
@@ -592,41 +571,112 @@ class BibliotecaApp(tk.Tk):
                     s += f"[{l.id}] {l.titulo} - {l.autor} | {disp}\n"
                 self.escribir_en_texto(txt, s)
             usuario_hist = usuario_accion_entry.get().strip()
-            if usuario_hist and patron:
+            if usuario_hist:
                 registrar_historial(
                     usuario_hist,
-                    f"Buscó '{patron}' en la gestión de libros y obtuvo {len(resultados)} resultado(s)",
+                    f"Buscó '{patron or 'todo el catálogo'}' desde la gestión de libros",
                 )
 
-        def eliminar():
-            libro_id = id_entry.get().strip()
-            if libro_id in libros:
-                eliminado = libros[libro_id]
-                del libros[libro_id]
-                notificaciones.encolar(f"Libro eliminado: {libro_id}")
-                usuario_hist = usuario_accion_entry.get().strip()
+        def abrir_modal_agregar():
+            modal = tk.Toplevel(self)
+            modal.title("Agregar libro al catálogo")
+            modal.transient(self)
+            modal.grab_set()
+
+            ttk.Label(modal, text="ID Libro:").grid(row=0, column=0, sticky="e", padx=5, pady=2)
+            ttk.Label(modal, text="Título:").grid(row=1, column=0, sticky="e", padx=5, pady=2)
+            ttk.Label(modal, text="Autor:").grid(row=2, column=0, sticky="e", padx=5, pady=2)
+            ttk.Label(modal, text="Géneros (coma):").grid(row=3, column=0, sticky="e", padx=5, pady=2)
+            ttk.Label(modal, text="Archivo de portada (opcional):").grid(
+                row=4, column=0, sticky="e", padx=5, pady=2
+            )
+            ttk.Label(modal, text="ID Usuario (historial opcional):").grid(
+                row=5, column=0, sticky="e", padx=5, pady=2
+            )
+
+            modal_id_entry = ttk.Entry(modal, width=25)
+            modal_titulo_entry = ttk.Entry(modal, width=40)
+            modal_autor_entry = ttk.Entry(modal, width=30)
+            modal_generos_entry = ttk.Entry(modal, width=40)
+            modal_portada_entry = ttk.Entry(modal, width=30)
+            modal_usuario_entry = ttk.Entry(modal, width=25)
+
+            modal_id_entry.grid(row=0, column=1, padx=5, pady=2)
+            modal_titulo_entry.grid(row=1, column=1, padx=5, pady=2)
+            modal_autor_entry.grid(row=2, column=1, padx=5, pady=2)
+            modal_generos_entry.grid(row=3, column=1, padx=5, pady=2)
+            modal_portada_entry.grid(row=4, column=1, padx=5, pady=2)
+            modal_usuario_entry.grid(row=5, column=1, padx=5, pady=2)
+
+            def registrar_desde_modal():
+                libro_id = modal_id_entry.get().strip()
+                if not libro_id:
+                    messagebox.showwarning("Error", "El ID del libro es obligatorio.")
+                    return
+                if libro_id in libros:
+                    messagebox.showwarning("Error", "Ya existe un libro con ese ID.")
+                    return
+                titulo = modal_titulo_entry.get().strip()
+                autor = modal_autor_entry.get().strip()
+                generos = [g.strip() for g in modal_generos_entry.get().split(",") if g.strip()]
+                portada = modal_portada_entry.get().strip() or None
+                if not titulo or not autor or not generos:
+                    messagebox.showwarning(
+                        "Error", "Título, autor y al menos un género son obligatorios."
+                    )
+                    return
+                libros[libro_id] = Libro(libro_id, titulo, autor, generos, portada)
+                notificaciones.encolar(f"Nuevo libro registrado: {titulo}")
+                usuario_hist = modal_usuario_entry.get().strip()
                 if usuario_hist:
                     registrar_historial(
                         usuario_hist,
-                        f"Retiró el libro '{eliminado.titulo}' (ID {libro_id}) del catálogo",
+                        f"Agregó el libro '{titulo}' (ID {libro_id}) el {datetime.now().strftime('%d/%m/%Y')}",
                     )
-                messagebox.showinfo("OK", "Libro eliminado.")
+                messagebox.showinfo("Registro", "Libro agregado correctamente.")
+                modal.destroy()
                 self.listar_libros_texto(txt)
-            else:
+
+            botones_modal = ttk.Frame(modal)
+            botones_modal.grid(row=6, column=0, columnspan=2, pady=10)
+            ttk.Button(botones_modal, text="Guardar", command=registrar_desde_modal).grid(
+                row=0, column=0, padx=5
+            )
+            ttk.Button(botones_modal, text="Cancelar", command=modal.destroy).grid(
+                row=0, column=1, padx=5
+            )
+
+        def eliminar_libro():
+            libro_id = id_eliminar_entry.get().strip()
+            if not libro_id:
+                messagebox.showwarning("Error", "Indique el ID del libro a eliminar.")
+                return
+            if libro_id not in libros:
                 messagebox.showwarning("Error", "Libro no encontrado.")
+                return
+            eliminado = libros.pop(libro_id)
+            notificaciones.encolar(f"Libro eliminado: {eliminado.titulo}")
+            usuario_hist = usuario_accion_entry.get().strip()
+            if usuario_hist:
+                registrar_historial(
+                    usuario_hist,
+                    f"Retiró el libro '{eliminado.titulo}' (ID {libro_id}) del catálogo",
+                )
+            messagebox.showinfo("Gestión", "Libro eliminado correctamente.")
+            self.listar_libros_texto(txt)
 
-        def ver_galeria():
-            self.mostrar_galeria_portadas()
+        botones = ttk.Frame(self.frame_contenido)
+        botones.grid(row=4, column=0, pady=5)
+        ttk.Button(botones, text="Agregar libro", command=abrir_modal_agregar).grid(
+            row=0, column=0, padx=10
+        )
+        ttk.Button(botones, text="Eliminar libro", command=eliminar_libro).grid(
+            row=0, column=1, padx=10
+        )
 
-        botones = ttk.Frame(frm)
-        botones.grid(row=6, column=0, columnspan=2, pady=5)
-
-        ttk.Button(botones, text="Registrar", command=registrar).grid(row=0, column=0, padx=5)
-        ttk.Button(botones, text="Listar todos", command=listar).grid(row=0, column=1, padx=5)
-        ttk.Button(botones, text="Buscar libro", command=buscar).grid(row=0, column=2, padx=5)
-        ttk.Button(botones, text="Eliminar por ID", command=eliminar).grid(row=0, column=3, padx=5)
-        ttk.Button(botones, text="Galería de portadas", command=ver_galeria).grid(row=0, column=4, padx=5)
-
+        busqueda_entry.bind("<Return>", lambda _event: ejecutar_busqueda())
+        btn_buscar.config(command=ejecutar_busqueda)
+        btn_ver_todo.config(command=lambda: self.listar_libros_texto(txt))
         self.listar_libros_texto(txt)
 
     def listar_libros_texto(self, txt):
