@@ -418,9 +418,9 @@ class BibliotecaApp(tk.Tk):
         for widget in self.frame_contenido.winfo_children():
             widget.destroy()
 
-    def crear_area_resultados(self):
+    def crear_area_resultados(self, row=1):
         txt = tk.Text(self.frame_contenido, height=18)
-        txt.grid(row=1, column=0, sticky="nsew", pady=10)
+        txt.grid(row=row, column=0, sticky="nsew", pady=10)
         txt.config(state="disabled")
         return txt
 
@@ -457,7 +457,7 @@ class BibliotecaApp(tk.Tk):
         nombre_entry.grid(row=1, column=1, padx=5, pady=2, sticky="w")
         generos_entry.grid(row=2, column=1, padx=5, pady=2, sticky="w")
 
-        txt = self.crear_area_resultados()
+        txt = self.crear_area_resultados(row=2)
 
         def mostrar_info_bienvenida(extra=""):
             texto = (
