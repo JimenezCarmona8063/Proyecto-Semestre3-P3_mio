@@ -552,6 +552,11 @@ class BibliotecaApp(tk.Tk):
 
         txt = self.crear_area_resultados(row=3)
 
+        def limpiar_campos():
+            for widget in (busqueda_entry, id_eliminar_entry, usuario_accion_entry):
+                widget.delete(0, tk.END)
+            self.listar_libros_texto(txt)
+
         def ejecutar_busqueda():
             patron = busqueda_entry.get().strip()
             if not patron:
@@ -673,6 +678,9 @@ class BibliotecaApp(tk.Tk):
         ttk.Button(botones, text="Eliminar libro", command=eliminar_libro).grid(
             row=0, column=1, padx=10
         )
+        ttk.Button(botones, text="Limpiar", command=limpiar_campos).grid(
+            row=0, column=2, padx=10
+        )
 
         busqueda_entry.bind("<Return>", lambda _event: ejecutar_busqueda())
         btn_buscar.config(command=ejecutar_busqueda)
@@ -763,6 +771,18 @@ class BibliotecaApp(tk.Tk):
 
         txt = self.crear_area_resultados(row=3)
 
+        def limpiar_campos():
+            for widget in (
+                busqueda_entry,
+                id_entry,
+                nombre_entry,
+                generos_entry,
+                elim_id_entry,
+                elim_nombre_entry,
+            ):
+                widget.delete(0, tk.END)
+            self.listar_usuarios_texto(txt)
+
         def registrar():
             usuario_id = id_entry.get().strip()
             if not usuario_id:
@@ -814,6 +834,7 @@ class BibliotecaApp(tk.Tk):
             text="Buscar con el formulario",
             command=lambda: ejecutar_busqueda(nombre_entry.get().strip()),
         ).grid(row=0, column=2, padx=5)
+        ttk.Button(botones, text="Limpiar", command=limpiar_campos).grid(row=0, column=3, padx=5)
 
         marco_eliminar = ttk.LabelFrame(self.frame_contenido, text="Eliminar usuario")
         marco_eliminar.grid(row=2, column=0, sticky="ew", padx=2, pady=(5, 0))
@@ -910,7 +931,15 @@ class BibliotecaApp(tk.Tk):
         txt = self.crear_area_resultados(row=2)
 
         def limpiar_campos():
-            for widget in (nombre_entry, l_entry, titulo_entry, autor_entry, fp_entry, fd_entry):
+            for widget in (
+                u_entry,
+                nombre_entry,
+                l_entry,
+                titulo_entry,
+                autor_entry,
+                fp_entry,
+                fd_entry,
+            ):
                 widget.delete(0, tk.END)
 
         def registrar_prestamo():
@@ -1090,6 +1119,7 @@ class BibliotecaApp(tk.Tk):
             text="Quitar registros devueltos",
             command=limpiar_registros_devueltos,
         ).grid(row=0, column=4, padx=5)
+        ttk.Button(botones, text="Limpiar", command=limpiar_campos).grid(row=0, column=5, padx=5)
 
         self.mostrar_prestamos_texto(txt)
 
