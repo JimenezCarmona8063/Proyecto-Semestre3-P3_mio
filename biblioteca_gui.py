@@ -723,9 +723,25 @@ class BibliotecaApp(tk.Tk):
 
     def mostrar_usuarios(self):
         self.limpiar_contenido()
-        ttk.Label(self.frame_contenido, text="Gestión de Usuarios", font=("Arial", 14, "bold")).grid(
-            row=0, column=0, sticky="w"
-        )
+
+        cabecera = ttk.Frame(self.frame_contenido)
+        cabecera.grid(row=0, column=0, sticky="ew")
+        cabecera.columnconfigure(0, weight=1)
+
+        ttk.Label(
+            cabecera,
+            text="Gestión de Usuarios",
+            font=("Arial", 14, "bold"),
+        ).grid(row=0, column=0, sticky="w")
+
+        ttk.Label(cabecera, text="Buscar (ID o nombre):").grid(row=0, column=1, sticky="e")
+        busqueda_entry = ttk.Entry(cabecera, width=28)
+        busqueda_entry.grid(row=0, column=2, padx=5, pady=2, sticky="e")
+        ttk.Button(
+            cabecera,
+            text="Buscar",
+            command=lambda: ejecutar_busqueda(busqueda_entry.get().strip()),
+        ).grid(row=0, column=3, padx=5)
 
         frm = ttk.Frame(self.frame_contenido)
         frm.grid(row=1, column=0, sticky="nwe")
@@ -742,7 +758,10 @@ class BibliotecaApp(tk.Tk):
         nombre_entry.grid(row=1, column=1, padx=5, pady=2, sticky="w")
         generos_entry.grid(row=2, column=1, padx=5, pady=2, sticky="w")
 
-        txt = self.crear_area_resultados()
+        botones = ttk.Frame(frm)
+        botones.grid(row=3, column=0, columnspan=2, pady=5)
+
+        txt = self.crear_area_resultados(row=3)
 
         def registrar():
             usuario_id = id_entry.get().strip()
@@ -755,7 +774,10 @@ class BibliotecaApp(tk.Tk):
             nombre = nombre_entry.get().strip()
             generos = [g.strip() for g in generos_entry.get().split(",") if g.strip()]
             usuarios[usuario_id] = Usuario(usuario_id, nombre, generos)
-            registrar_historial(usuario_id, f"Usuario registrado el {datetime.now().strftime('%d/%m/%Y')}")
+            registrar_historial(
+                usuario_id,
+                f"Usuario registrado el {datetime.now().strftime('%d/%m/%Y')}"
+            )
             notificaciones.encolar(f"Nuevo usuario registrado: {nombre}")
             messagebox.showinfo("OK", "Usuario registrado.")
             self.listar_usuarios_texto(txt)
@@ -763,8 +785,11 @@ class BibliotecaApp(tk.Tk):
         def listar():
             self.listar_usuarios_texto(txt)
 
-        def buscar():
-            patron = nombre_entry.get().strip()
+        def ejecutar_busqueda(patron):
+            patron = patron or busqueda_entry.get().strip()
+            if not patron:
+                self.listar_usuarios_texto(txt)
+                return
             resultados = []
             for u in usuarios.values():
                 texto = f"{u.id} {u.nombre}"
@@ -772,29 +797,60 @@ class BibliotecaApp(tk.Tk):
                     resultados.append(u)
             if not resultados:
                 self.escribir_en_texto(txt, "No se encontraron usuarios.")
-            else:
-                s = "Resultados de búsqueda:\n\n"
-                for u in resultados:
-                    s += f"[{u.id}] {u.nombre} | Libros actuales: {len(u.libros_actuales)}\n"
-                self.escribir_en_texto(txt, s)
-
-        def eliminar():
-            usuario_id = id_entry.get().strip()
-            if usuario_id in usuarios:
-                del usuarios[usuario_id]
-                notificaciones.encolar(f"Usuario eliminado: {usuario_id}")
-                messagebox.showinfo("OK", "Usuario eliminado.")
-                self.listar_usuarios_texto(txt)
-            else:
-                messagebox.showwarning("Error", "Usuario no encontrado.")
-
-        botones = ttk.Frame(frm)
-        botones.grid(row=3, column=0, columnspan=2, pady=5)
+                return
+            s = "Resultados de búsqueda:\n\n"
+            for u in resultados:
+                estado = "Sí pidió libros" if u.libros_actuales else "Sin préstamos activos"
+                s += (
+                    f"[{u.id}] {u.nombre}\n"
+                    f"   Estado: {estado} (total {len(u.libros_actuales)})\n"
+                )
+            self.escribir_en_texto(txt, s)
 
         ttk.Button(botones, text="Registrar", command=registrar).grid(row=0, column=0, padx=5)
         ttk.Button(botones, text="Listar todos", command=listar).grid(row=0, column=1, padx=5)
-        ttk.Button(botones, text="Buscar", command=buscar).grid(row=0, column=2, padx=5)
-        ttk.Button(botones, text="Eliminar por ID", command=eliminar).grid(row=0, column=3, padx=5)
+        ttk.Button(
+            botones,
+            text="Buscar con el formulario",
+            command=lambda: ejecutar_busqueda(nombre_entry.get().strip()),
+        ).grid(row=0, column=2, padx=5)
+
+        marco_eliminar = ttk.LabelFrame(self.frame_contenido, text="Eliminar usuario")
+        marco_eliminar.grid(row=2, column=0, sticky="ew", padx=2, pady=(5, 0))
+        ttk.Label(marco_eliminar, text="ID:").grid(row=0, column=0, sticky="e")
+        elim_id_entry = ttk.Entry(marco_eliminar, width=15)
+        elim_id_entry.grid(row=0, column=1, padx=5, pady=2, sticky="w")
+        ttk.Label(marco_eliminar, text="Nombre:").grid(row=1, column=0, sticky="e")
+        elim_nombre_entry = ttk.Entry(marco_eliminar, width=30)
+        elim_nombre_entry.grid(row=1, column=1, padx=5, pady=2, sticky="w")
+
+        def eliminar():
+            usuario_id = elim_id_entry.get().strip() or id_entry.get().strip()
+            if not usuario_id:
+                messagebox.showwarning("Error", "Indica el ID del usuario a eliminar.")
+                return
+            usuario = usuarios.get(usuario_id)
+            if not usuario:
+                messagebox.showwarning("Error", "Usuario no encontrado.")
+                return
+            nombre_ref = elim_nombre_entry.get().strip()
+            if nombre_ref and nombre_ref.lower() != usuario.nombre.lower():
+                if not messagebox.askyesno(
+                    "Confirmar",
+                    "El nombre no coincide con el registro actual. ¿Deseas continuar?",
+                ):
+                    return
+            registrar_historial(usuario_id, "Cuenta eliminada por el administrador")
+            del usuarios[usuario_id]
+            notificaciones.encolar(
+                f"Usuario eliminado: {usuario.nombre} (ID {usuario_id})"
+            )
+            messagebox.showinfo("OK", "Usuario eliminado.")
+            self.listar_usuarios_texto(txt)
+
+        ttk.Button(marco_eliminar, text="Eliminar usuario", command=eliminar).grid(
+            row=2, column=0, columnspan=2, pady=5
+        )
 
         self.listar_usuarios_texto(txt)
 
@@ -805,7 +861,12 @@ class BibliotecaApp(tk.Tk):
         s = "Mapa de Usuarios:\n\n"
         for u in usuarios.values():
             s += f"[{u.id}] {u.nombre}\n"
-            s += f"   Libros actuales: {u.libros_actuales}\n"
+            if u.libros_actuales:
+                ids = ", ".join(sorted(u.libros_actuales))
+                estado = f"Sí pidió libros (IDs: {ids})"
+            else:
+                estado = "Sin préstamos activos"
+            s += f"   Estado de préstamos: {estado}\n"
             s += f"   Géneros preferidos: {', '.join(u.generos_preferidos)}\n"
         self.escribir_en_texto(txt, s)
 

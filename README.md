@@ -40,3 +40,10 @@ Así, cada sección del menú muestra contenido real desde el primer arranque y 
 - El botón "Ver todo" refresca el panel central para mostrar nuevamente el catálogo completo.
 - En la parte inferior solo hay dos acciones principales: **Agregar libro** (abre una ventana modal que solicita todos los datos del ejemplar antes de registrarlo) y **Eliminar libro** (usa el ID indicado en el formulario rápido).
 - Cada alta o baja se comunica mediante notificaciones y, si proporcionas un ID de usuario, la acción queda registrada en su historial.
+
+## Flujo actual de gestión de usuarios
+
+- La cabecera incluye un buscador en la esquina superior derecha que acepta **ID o nombre** para filtrar usuarios al instante.
+- El formulario central permite registrar nuevos usuarios con sus géneros preferidos y botones para listar o lanzar una búsqueda con esos mismos campos.
+- La parte inferior muestra un panel dedicado a **eliminar usuarios**: introduce el ID (y opcionalmente el nombre para mayor seguridad) y confirma con el botón correspondiente. Cada eliminación genera una notificación y una entrada en el historial del usuario antes de ser removido.
+- El panel de resultados indica, para cada usuario, si actualmente tiene libros prestados ("Sí pidió libros") o si no registra movimientos activos.
