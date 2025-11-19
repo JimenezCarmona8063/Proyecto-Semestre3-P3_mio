@@ -55,3 +55,9 @@ Así, cada sección del menú muestra contenido real desde el primer arranque y 
 - "Registrar devolución" utiliza los mismos campos para ubicar el préstamo, liberar el ejemplar y registrar la actividad.
 - El botón adicional "Quitar registros devueltos" purga la lista para que solo se muestren los préstamos realmente activos, tal como solicitaste.
 
+## Flujo actual de historial de usuarios
+
+- La sección muestra a **todos los usuarios registrados** en una tabla lateral con sus préstamos activos; al seleccionar uno se despliega su perfil con nombre, ID, géneros preferidos y estado de deuda.
+- El perfil detalla los **libros que tiene en mano** (si debe algo), las búsquedas registradas, los préstamos activos con fechas y el historial cronológico de acciones (altas, bajas, búsquedas, préstamos y devoluciones).
+- Puedes añadir notas manuales al historial desde el mismo panel; cada entrada adicional genera una notificación.
+

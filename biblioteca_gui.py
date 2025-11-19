@@ -1134,54 +1134,147 @@ class BibliotecaApp(tk.Tk):
             row=0, column=0, sticky="w"
         )
 
-        frm = ttk.Frame(self.frame_contenido)
-        frm.grid(row=1, column=0, sticky="nwe")
+        contenedor = ttk.Frame(self.frame_contenido)
+        contenedor.grid(row=1, column=0, sticky="nsew")
+        contenedor.columnconfigure(1, weight=1)
+        contenedor.rowconfigure(0, weight=1)
 
-        ttk.Label(frm, text="ID Usuario:").grid(row=0, column=0, sticky="e")
-        id_entry = ttk.Entry(frm, width=15)
-        id_entry.grid(row=0, column=1, padx=5, pady=2, sticky="w")
+        marco_lista = ttk.LabelFrame(contenedor, text="Usuarios registrados")
+        marco_lista.grid(row=0, column=0, sticky="nsw", padx=(0, 10))
 
-        ttk.Label(frm, text="Actividad manual:").grid(row=1, column=0, sticky="e")
-        act_entry = ttk.Entry(frm, width=40)
-        act_entry.grid(row=1, column=1, padx=5, pady=2, sticky="w")
+        columnas = ("id", "nombre", "prestamos")
+        tabla = ttk.Treeview(marco_lista, columns=columnas, show="headings", height=15)
+        tabla.heading("id", text="ID")
+        tabla.heading("nombre", text="Nombre")
+        tabla.heading("prestamos", text="Préstamos activos")
+        tabla.column("id", width=80, anchor="center")
+        tabla.column("nombre", width=160)
+        tabla.column("prestamos", width=120, anchor="center")
 
-        txt = self.crear_area_resultados()
+        scroll = ttk.Scrollbar(marco_lista, orient="vertical", command=tabla.yview)
+        tabla.configure(yscroll=scroll.set)
+        tabla.grid(row=0, column=0, sticky="nsew")
+        scroll.grid(row=0, column=1, sticky="ns")
+        marco_lista.rowconfigure(0, weight=1)
+        marco_lista.columnconfigure(0, weight=1)
 
-        def ver():
-            usuario_id = id_entry.get().strip()
-            u = usuarios.get(usuario_id)
-            if not u:
-                messagebox.showwarning("Error", "Usuario no encontrado.")
+        panel_detalle = ttk.LabelFrame(contenedor, text="Perfil del usuario")
+        panel_detalle.grid(row=0, column=1, sticky="nsew")
+        panel_detalle.columnconfigure(1, weight=1)
+        panel_detalle.rowconfigure(2, weight=1)
+
+        ttk.Label(panel_detalle, text="ID seleccionado:").grid(row=0, column=0, sticky="e", padx=5, pady=2)
+        id_entry = ttk.Entry(panel_detalle, width=18)
+        id_entry.grid(row=0, column=1, sticky="w", padx=5, pady=2)
+
+        ttk.Label(panel_detalle, text="Actividad manual:").grid(row=1, column=0, sticky="e", padx=5, pady=2)
+        act_entry = ttk.Entry(panel_detalle, width=60)
+        act_entry.grid(row=1, column=1, sticky="w", padx=5, pady=2)
+
+        txt = tk.Text(panel_detalle, height=18, wrap="word")
+        txt.grid(row=2, column=0, columnspan=2, sticky="nsew", padx=5, pady=(8, 4))
+        txt.config(state="disabled")
+
+        def escribir_detalle(texto):
+            txt.config(state="normal")
+            txt.delete("1.0", tk.END)
+            txt.insert(tk.END, texto)
+            txt.config(state="disabled")
+
+        def resumen_prestamos(usuario_obj):
+            activos = []
+            for prestamo in prestamos_activos:
+                if prestamo.activo and prestamo.usuario_id == usuario_obj.id:
+                    libro = libros.get(prestamo.libro_id)
+                    titulo = libro.titulo if libro else prestamo.libro_id
+                    activos.append(
+                        f"- {titulo} | {prestamo.fecha_prestamo} → {prestamo.fecha_devolucion}"
+                    )
+            return activos
+
+        def render_perfil(usuario_obj):
+            if not usuario_obj:
+                escribir_detalle("Seleccione un usuario para ver su perfil.")
                 return
-            s = f"Historial de {u.nombre} (ID {u.id}):\n\n"
-            vacio = True
-            for ev in u.historial:
-                s += "- " + ev + "\n"
-                vacio = False
-            if vacio:
-                s += "No hay actividades registradas."
-            self.escribir_en_texto(txt, s)
 
-        def agregar():
+            id_entry.delete(0, tk.END)
+            id_entry.insert(0, usuario_obj.id)
+
+            historial_items = list(usuario_obj.historial)
+            busquedas = [ev for ev in historial_items if "busc" in ev.lower()]
+            prestamos_usuario = resumen_prestamos(usuario_obj)
+
+            encabezado = [
+                f"Nombre: {usuario_obj.nombre}",
+                f"ID: {usuario_obj.id}",
+                f"Géneros preferidos: {', '.join(sorted(usuario_obj.generos_preferidos)) or '—'}",
+            ]
+
+            estado_prestamo = (
+                f"Tiene {len(prestamos_usuario)} préstamo(s) activo(s)." if prestamos_usuario else "No debe libros."
+            )
+
+            cuerpo = "\n".join(encabezado)
+            cuerpo += "\n\nEstado de préstamos: " + estado_prestamo
+            cuerpo += "\nLibros en mano: " + (", ".join(usuario_obj.libros_actuales) if usuario_obj.libros_actuales else "Ninguno")
+            cuerpo += "\nConsultas registradas: " + (str(len(busquedas)) if busquedas else "0")
+
+            if prestamos_usuario:
+                cuerpo += "\n\nPréstamos activos:\n" + "\n".join(prestamos_usuario)
+
+            cuerpo += "\n\nHistorial detallado:\n"
+            if historial_items:
+                cuerpo += "\n".join(f"- {ev}" for ev in historial_items)
+            else:
+                cuerpo += "No hay actividades registradas."
+
+            escribir_detalle(cuerpo)
+
+        def cargar_lista():
+            tabla.delete(*tabla.get_children())
+            for usuario_obj in sorted(usuarios.values(), key=lambda u: u.nombre.lower()):
+                activos = len([p for p in prestamos_activos if p.activo and p.usuario_id == usuario_obj.id])
+                tabla.insert("", "end", values=(usuario_obj.id, usuario_obj.nombre, activos))
+
+            if usuarios:
+                primero = tabla.get_children()
+                if primero:
+                    tabla.selection_set(primero[0])
+                    render_perfil(usuarios.get(tabla.item(primero[0], "values")[0]))
+            else:
+                escribir_detalle("No hay usuarios registrados todavía.")
+
+        def on_select(_event=None):
+            seleccionado = tabla.selection()
+            if not seleccionado:
+                return
+            valores = tabla.item(seleccionado[0], "values")
+            usuario_obj = usuarios.get(valores[0])
+            render_perfil(usuario_obj)
+
+        def agregar_actividad():
             usuario_id = id_entry.get().strip()
-            u = usuarios.get(usuario_id)
-            if not u:
+            usuario_obj = usuarios.get(usuario_id)
+            if not usuario_obj:
                 messagebox.showwarning("Error", "Usuario no encontrado.")
                 return
             actividad = act_entry.get().strip()
             if not actividad:
                 messagebox.showwarning("Error", "Escriba una actividad.")
                 return
-            u.historial.agregar(actividad)
-            notificaciones.encolar(f"Actividad añadida al historial de {u.nombre}")
+            usuario_obj.historial.agregar(actividad)
+            notificaciones.encolar(f"Actividad añadida al historial de {usuario_obj.nombre}")
             messagebox.showinfo("OK", "Actividad agregada.")
-            ver()
+            act_entry.delete(0, tk.END)
+            cargar_lista()
+            render_perfil(usuario_obj)
 
-        botones = ttk.Frame(frm)
-        botones.grid(row=2, column=0, columnspan=2, pady=5)
+        botones = ttk.Frame(panel_detalle)
+        botones.grid(row=3, column=0, columnspan=2, pady=6)
+        ttk.Button(botones, text="Agregar actividad", command=agregar_actividad).grid(row=0, column=0, padx=5)
 
-        ttk.Button(botones, text="Ver historial", command=ver).grid(row=0, column=0, padx=5)
-        ttk.Button(botones, text="Agregar actividad", command=agregar).grid(row=0, column=1, padx=5)
+        tabla.bind("<<TreeviewSelect>>", on_select)
+        cargar_lista()
 
     # ---------------- Notificaciones ------------------
 
