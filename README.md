@@ -47,3 +47,11 @@ Así, cada sección del menú muestra contenido real desde el primer arranque y 
 - El formulario central permite registrar nuevos usuarios con sus géneros preferidos y botones para listar o lanzar una búsqueda con esos mismos campos.
 - La parte inferior muestra un panel dedicado a **eliminar usuarios**: introduce el ID (y opcionalmente el nombre para mayor seguridad) y confirma con el botón correspondiente. Cada eliminación genera una notificación y una entrada en el historial del usuario antes de ser removido.
 - El panel de resultados indica, para cada usuario, si actualmente tiene libros prestados ("Sí pidió libros") o si no registra movimientos activos.
+
+## Flujo actual de préstamos y devoluciones
+
+- En la parte superior del módulo se solicita el **ID y el nombre del usuario**, así como el **ID, título y autor del libro** más las fechas de préstamo y devolución. La pantalla valida todos esos datos antes de registrar el movimiento.
+- El botón "Registrar préstamo" crea la operación, añade la entrada al historial del usuario, marca el libro como no disponible y genera la notificación correspondiente.
+- "Registrar devolución" utiliza los mismos campos para ubicar el préstamo, liberar el ejemplar y registrar la actividad.
+- El botón adicional "Quitar registros devueltos" purga la lista para que solo se muestren los préstamos realmente activos, tal como solicitaste.
+

@@ -874,73 +874,136 @@ class BibliotecaApp(tk.Tk):
 
     def mostrar_prestamos(self):
         self.limpiar_contenido()
-        ttk.Label(self.frame_contenido, text="Préstamos y Devoluciones", font=("Arial", 14, "bold")).grid(
-            row=0, column=0, sticky="w"
-        )
+        ttk.Label(
+            self.frame_contenido,
+            text="Préstamos y Devoluciones",
+            font=("Arial", 14, "bold"),
+        ).grid(row=0, column=0, sticky="w")
 
         frm = ttk.Frame(self.frame_contenido)
         frm.grid(row=1, column=0, sticky="nwe")
 
         ttk.Label(frm, text="ID Usuario:").grid(row=0, column=0, sticky="e")
+        ttk.Label(frm, text="Nombre del usuario:").grid(row=0, column=2, sticky="e")
         ttk.Label(frm, text="ID Libro:").grid(row=1, column=0, sticky="e")
-        ttk.Label(frm, text="F. Préstamo (dd/mm/aaaa):").grid(row=2, column=0, sticky="e")
-        ttk.Label(frm, text="F. Devolución (dd/mm/aaaa):").grid(row=3, column=0, sticky="e")
+        ttk.Label(frm, text="Título del libro:").grid(row=1, column=2, sticky="e")
+        ttk.Label(frm, text="Autor del libro:").grid(row=2, column=0, sticky="e")
+        ttk.Label(frm, text="F. Préstamo (dd/mm/aaaa):").grid(row=2, column=2, sticky="e")
+        ttk.Label(frm, text="F. Devolución (dd/mm/aaaa):").grid(row=3, column=2, sticky="e")
 
-        u_entry = ttk.Entry(frm, width=15)
-        l_entry = ttk.Entry(frm, width=15)
-        fp_entry = ttk.Entry(frm, width=15)
-        fd_entry = ttk.Entry(frm, width=15)
+        u_entry = ttk.Entry(frm, width=18)
+        nombre_entry = ttk.Entry(frm, width=25)
+        l_entry = ttk.Entry(frm, width=18)
+        titulo_entry = ttk.Entry(frm, width=30)
+        autor_entry = ttk.Entry(frm, width=25)
+        fp_entry = ttk.Entry(frm, width=18)
+        fd_entry = ttk.Entry(frm, width=18)
 
         u_entry.grid(row=0, column=1, padx=5, pady=2, sticky="w")
+        nombre_entry.grid(row=0, column=3, padx=5, pady=2, sticky="w")
         l_entry.grid(row=1, column=1, padx=5, pady=2, sticky="w")
-        fp_entry.grid(row=2, column=1, padx=5, pady=2, sticky="w")
-        fd_entry.grid(row=3, column=1, padx=5, pady=2, sticky="w")
+        titulo_entry.grid(row=1, column=3, padx=5, pady=2, sticky="w")
+        autor_entry.grid(row=2, column=1, padx=5, pady=2, sticky="w")
+        fp_entry.grid(row=2, column=3, padx=5, pady=2, sticky="w")
+        fd_entry.grid(row=3, column=3, padx=5, pady=2, sticky="w")
 
-        txt = self.crear_area_resultados()
+        txt = self.crear_area_resultados(row=2)
+
+        def limpiar_campos():
+            for widget in (nombre_entry, l_entry, titulo_entry, autor_entry, fp_entry, fd_entry):
+                widget.delete(0, tk.END)
 
         def registrar_prestamo():
             usuario_id = u_entry.get().strip()
+            nombre_usuario = nombre_entry.get().strip()
             libro_id = l_entry.get().strip()
+            titulo_reportado = titulo_entry.get().strip()
+            autor_reportado = autor_entry.get().strip()
+            fecha_p = fp_entry.get().strip()
+            fecha_d = fd_entry.get().strip()
+            if not nombre_usuario:
+                messagebox.showwarning("Datos incompletos", "Escribe el nombre del usuario que solicita el libro.")
+                return
+            if not titulo_reportado or not autor_reportado:
+                messagebox.showwarning("Datos incompletos", "Indica el título y el autor del libro.")
+                return
+            if not fecha_p or not fecha_d:
+                messagebox.showwarning("Datos incompletos", "Captura las fechas de préstamo y devolución.")
+                return
             if usuario_id not in usuarios:
                 messagebox.showwarning("Error", "Usuario no encontrado.")
                 return
             if libro_id not in libros:
                 messagebox.showwarning("Error", "Libro no encontrado.")
                 return
-            libro = libros[libro_id]
+
             usuario = usuarios[usuario_id]
+            libro = libros[libro_id]
+
+            if nombre_usuario and nombre_usuario.lower() != usuario.nombre.lower():
+                messagebox.showwarning(
+                    "Advertencia",
+                    "El nombre proporcionado no coincide con el usuario registrado.",
+                )
+                return
+            if titulo_reportado and titulo_reportado.lower() != libro.titulo.lower():
+                messagebox.showwarning(
+                    "Advertencia",
+                    "El título proporcionado no coincide con el libro registrado.",
+                )
+                return
+            if autor_reportado and autor_reportado.lower() != libro.autor.lower():
+                messagebox.showwarning(
+                    "Advertencia",
+                    "El autor proporcionado no coincide con el libro registrado.",
+                )
+                return
 
             if not libro.disponible:
-                # si no está disponible, se crea una reserva en la cola de prioridad
-                try:
-                    prioridad = int(fp_entry.get() or "10")
-                except ValueError:
-                    prioridad = 10
+                prioridad = 5
                 reservas.insertar(prioridad, Reserva(usuario_id, libro_id, prioridad))
-                notificaciones.encolar(f"Reserva creada: {usuario.nombre} -> {libro.titulo}")
-                messagebox.showinfo("Reserva", "El libro no está disponible. Se creó una reserva.")
+                notificaciones.encolar(
+                    f"Reserva creada: {usuario.nombre} -> {libro.titulo}"
+                )
+                messagebox.showinfo(
+                    "Reserva",
+                    "El libro no está disponible. Se creó una reserva.",
+                )
                 self.mostrar_reservas_texto(txt)
                 return
 
-            fecha_p = fp_entry.get().strip() or datetime.now().strftime("%d/%m/%Y")
-            fecha_d = fd_entry.get().strip() or fecha_p
             prestamo = Prestamo(libro_id, usuario_id, fecha_p, fecha_d)
             prestamos_activos.agregar(prestamo)
             libro.disponible = False
             libro.popularidad += 1
             usuario.libros_actuales.add(libro_id)
-            usuario.historial.agregar(f"Préstamo de '{libro.titulo}' el {fecha_p}")
-            notificaciones.encolar(f"Préstamo registrado: {usuario.nombre} tomó '{libro.titulo}'")
+            usuario.historial.agregar(
+                f"Préstamo de '{libro.titulo}' (autor: {libro.autor}) el {fecha_p}"
+            )
+            notificaciones.encolar(
+                f"Préstamo registrado: {usuario.nombre} tomó '{libro.titulo}'"
+            )
             messagebox.showinfo("OK", "Préstamo registrado.")
+            limpiar_campos()
             self.mostrar_prestamos_texto(txt)
 
         def devolver():
             usuario_id = u_entry.get().strip()
+            nombre_usuario = nombre_entry.get().strip()
             libro_id = l_entry.get().strip()
-            libro = libros.get(libro_id)
-            usuario = usuarios.get(usuario_id)
-            if not libro or not usuario:
-                messagebox.showwarning("Error", "Libro o usuario no encontrado.")
+            if usuario_id not in usuarios or libro_id not in libros:
+                messagebox.showwarning(
+                    "Error",
+                    "Debe indicar un usuario y un libro válidos para registrar la devolución.",
+                )
+                return
+            usuario = usuarios[usuario_id]
+            libro = libros[libro_id]
+            if nombre_usuario and nombre_usuario.lower() != usuario.nombre.lower():
+                messagebox.showwarning(
+                    "Advertencia",
+                    "El nombre proporcionado no coincide con el usuario registrado.",
+                )
                 return
 
             encontrado = False
@@ -950,23 +1013,32 @@ class BibliotecaApp(tk.Tk):
                     encontrado = True
                     break
             if not encontrado:
-                messagebox.showwarning("Error", "No hay préstamo activo con esos datos.")
+                messagebox.showwarning(
+                    "Error",
+                    "No hay préstamo activo con esos datos.",
+                )
                 return
 
             libro.disponible = True
             if libro_id in usuario.libros_actuales:
                 usuario.libros_actuales.remove(libro_id)
             fecha_hoy = datetime.now().strftime("%d/%m/%Y")
-            usuario.historial.agregar(f"Devolución de '{libro.titulo}' el {fecha_hoy}")
-            notificaciones.encolar(f"Devolución registrada: {usuario.nombre} entregó '{libro.titulo}'")
+            usuario.historial.agregar(
+                f"Devolución de '{libro.titulo}' el {fecha_hoy}"
+            )
+            notificaciones.encolar(
+                f"Devolución registrada: {usuario.nombre} entregó '{libro.titulo}'"
+            )
 
-            # atender una reserva si existe
             if not reservas.esta_vacia():
                 r = reservas.extraer_min()
                 u_res = usuarios.get(r.usuario_id)
                 if u_res:
-                    notificaciones.encolar(f"Libro '{libro.titulo}' listo para reserva de {u_res.nombre}")
+                    notificaciones.encolar(
+                        f"Libro '{libro.titulo}' listo para reserva de {u_res.nombre}"
+                    )
             messagebox.showinfo("OK", "Devolución registrada.")
+            limpiar_campos()
             self.mostrar_prestamos_texto(txt)
 
         def ver_prestamos():
@@ -975,13 +1047,49 @@ class BibliotecaApp(tk.Tk):
         def ver_reservas():
             self.mostrar_reservas_texto(txt)
 
-        botones = ttk.Frame(frm)
-        botones.grid(row=4, column=0, columnspan=2, pady=5)
+        def limpiar_registros_devueltos():
+            activos = []
+            total = 0
+            for p in prestamos_activos:
+                total += 1
+                if p.activo:
+                    activos.append(p)
+            if total == len(activos):
+                messagebox.showinfo(
+                    "Sin cambios",
+                    "No hay registros devueltos por limpiar.",
+                )
+                return
+            prestamos_activos.cabeza = None
+            prestamos_activos.cola = None
+            for p in activos:
+                prestamos_activos.agregar(p)
+            messagebox.showinfo(
+                "Limpieza completada",
+                "Se quitaron los préstamos ya devueltos de la lista.",
+            )
+            self.mostrar_prestamos_texto(txt)
 
-        ttk.Button(botones, text="Registrar préstamo", command=registrar_prestamo).grid(row=0, column=0, padx=5)
-        ttk.Button(botones, text="Registrar devolución", command=devolver).grid(row=0, column=1, padx=5)
-        ttk.Button(botones, text="Ver préstamos activos", command=ver_prestamos).grid(row=0, column=2, padx=5)
-        ttk.Button(botones, text="Ver reservas (cola prioridad)", command=ver_reservas).grid(row=0, column=3, padx=5)
+        botones = ttk.Frame(frm)
+        botones.grid(row=4, column=0, columnspan=4, pady=5)
+
+        ttk.Button(botones, text="Registrar préstamo", command=registrar_prestamo).grid(
+            row=0, column=0, padx=5
+        )
+        ttk.Button(botones, text="Registrar devolución", command=devolver).grid(
+            row=0, column=1, padx=5
+        )
+        ttk.Button(botones, text="Ver préstamos activos", command=ver_prestamos).grid(
+            row=0, column=2, padx=5
+        )
+        ttk.Button(botones, text="Ver reservas (cola prioridad)", command=ver_reservas).grid(
+            row=0, column=3, padx=5
+        )
+        ttk.Button(
+            botones,
+            text="Quitar registros devueltos",
+            command=limpiar_registros_devueltos,
+        ).grid(row=0, column=4, padx=5)
 
         self.mostrar_prestamos_texto(txt)
 
