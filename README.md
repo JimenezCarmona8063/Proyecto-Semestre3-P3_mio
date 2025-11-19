@@ -16,6 +16,10 @@ Cada sección demuestra el uso de estructuras de datos personalizadas como lista
 - Python 3.10+
 - Tkinter (incluido por defecto en las instalaciones estándar de Python en Windows y la mayoría de distribuciones de Linux)
 
+## Aspecto visual
+
+La interfaz emplea una paleta cálida inspirada en bibliotecas (tonos marfil y verde) con botones de acento, campos suavizados y tablas estilizadas para que la navegación se sienta más cuidada sin alterar el flujo ya implementado.
+
 ## Ejecución
 
 ```bash

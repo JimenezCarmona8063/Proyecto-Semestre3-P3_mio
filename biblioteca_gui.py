@@ -210,8 +210,122 @@ class BibliotecaApp(tk.Tk):
         self.demo_cargado = False
         self.registro_completado = False
 
+        self._configurar_estilos()
         self._crear_layout()
         self.cargar_datos_demo()  # llena con libros reales
+
+    def _configurar_estilos(self):
+        """Define una paleta y estilos coherentes para toda la interfaz."""
+
+        palette = {
+            "bg": "#f4f1ea",
+            "panel": "#ffffff",
+            "accent": "#5c7c6f",
+            "accent_dark": "#39594c",
+            "text": "#2f2a28",
+            "muted": "#6d625c",
+            "border": "#d6cec6",
+            "input": "#fdfbf7",
+        }
+
+        self.configure(bg=palette["bg"])
+        default_font = ("Segoe UI", 10)
+        self.option_add("*Font", default_font)
+
+        style = ttk.Style(self)
+        style.theme_use("clam")
+
+        style.configure(
+            "TFrame",
+            background=palette["bg"],
+            relief="flat",
+        )
+        style.configure(
+            "TLabel",
+            background=palette["bg"],
+            foreground=palette["text"],
+        )
+        style.configure(
+            "Titulo.TLabel",
+            background=palette["bg"],
+            foreground=palette["accent_dark"],
+            font=("Georgia", 16, "bold"),
+        )
+        style.configure(
+            "Subtitulo.TLabel",
+            background=palette["bg"],
+            foreground=palette["muted"],
+            font=("Segoe UI", 10, "italic"),
+        )
+        style.configure(
+            "TButton",
+            background=palette["accent"],
+            foreground="#ffffff",
+            borderwidth=0,
+            padding=(12, 7),
+            focusthickness=3,
+            focuscolor=palette["border"],
+        )
+        style.map(
+            "TButton",
+            background=[("active", palette["accent_dark"])],
+            foreground=[("active", "#ffffff")],
+        )
+        style.configure(
+            "TEntry",
+            fieldbackground=palette["input"],
+            background=palette["input"],
+            foreground=palette["text"],
+            bordercolor=palette["border"],
+            padding=6,
+        )
+        style.map(
+            "TEntry",
+            fieldbackground=[("disabled", palette["bg"])],
+            foreground=[("disabled", palette["muted"])],
+        )
+        style.configure(
+            "Treeview",
+            background=palette["panel"],
+            fieldbackground=palette["panel"],
+            foreground=palette["text"],
+            bordercolor=palette["border"],
+            rowheight=24,
+        )
+        style.configure(
+            "Treeview.Heading",
+            background=palette["accent"],
+            foreground="#ffffff",
+            relief="flat",
+            font=("Segoe UI", 10, "bold"),
+        )
+        style.map(
+            "Treeview",
+            background=[("selected", palette["accent"])],
+            foreground=[("selected", "#ffffff")],
+        )
+
+        style.configure(
+            "TNotebook",
+            background=palette["bg"],
+            bordercolor=palette["bg"],
+        )
+        style.configure(
+            "TNotebook.Tab",
+            background=palette["panel"],
+            foreground=palette["muted"],
+            padding=(10, 6),
+        )
+        style.map(
+            "TNotebook.Tab",
+            background=[("selected", palette["accent"]), ("active", palette["accent_dark"])],
+            foreground=[("selected", "#ffffff"), ("active", "#ffffff")],
+        )
+
+        # Acolchonado general para que los frames no se peguen a los bordes
+        style.configure("Card.TFrame", background=palette["panel"], relief="flat", borderwidth=1)
+        self.option_add("*TFrame.padding", 6)
+
 
     # --- layout principal: menú lateral + área central ---
     def _crear_layout(self):
@@ -219,7 +333,7 @@ class BibliotecaApp(tk.Tk):
         self.columnconfigure(1, weight=4)
         self.rowconfigure(0, weight=1)
 
-        self.frame_menu = ttk.Frame(self, padding=10)
+        self.frame_menu = ttk.Frame(self, padding=10, style="Card.TFrame")
         self.frame_menu.grid(row=0, column=0, sticky="nsw")
 
         ttk.Label(self.frame_menu, text="Menú Principal", font=("Arial", 12, "bold")).pack(pady=5)
@@ -239,7 +353,7 @@ class BibliotecaApp(tk.Tk):
         ttk.Button(self.frame_menu, text="Salir", command=self.destroy).pack(fill="x", pady=20)
 
         # Frame donde se cambian las secciones
-        self.frame_contenido = ttk.Frame(self, padding=10)
+        self.frame_contenido = ttk.Frame(self, padding=14, style="Card.TFrame")
         self.frame_contenido.grid(row=0, column=1, sticky="nsew")
         self.frame_contenido.rowconfigure(1, weight=1)
         self.frame_contenido.columnconfigure(0, weight=1)
@@ -419,7 +533,17 @@ class BibliotecaApp(tk.Tk):
             widget.destroy()
 
     def crear_area_resultados(self, row=1):
-        txt = tk.Text(self.frame_contenido, height=18)
+        txt = tk.Text(
+            self.frame_contenido,
+            height=18,
+            bg="#fdfbf7",
+            fg="#2f2a28",
+            wrap="word",
+            relief="flat",
+            bd=8,
+            font=("Segoe UI", 10),
+            highlightthickness=0,
+        )
         txt.grid(row=row, column=0, sticky="nsew", pady=10)
         txt.config(state="disabled")
         return txt
