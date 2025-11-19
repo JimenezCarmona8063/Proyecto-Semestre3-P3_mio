@@ -208,6 +208,7 @@ class BibliotecaApp(tk.Tk):
         # referencias a imágenes para que no se borren
         self.imagenes_libros = []
         self.demo_cargado = False
+        self.registro_completado = False
 
         self._crear_layout()
         self.cargar_datos_demo()  # llena con libros reales
@@ -218,23 +219,24 @@ class BibliotecaApp(tk.Tk):
         self.columnconfigure(1, weight=4)
         self.rowconfigure(0, weight=1)
 
-        frame_menu = ttk.Frame(self, padding=10)
-        frame_menu.grid(row=0, column=0, sticky="nsw")
+        self.frame_menu = ttk.Frame(self, padding=10)
+        self.frame_menu.grid(row=0, column=0, sticky="nsw")
 
-        ttk.Label(frame_menu, text="Menú Principal", font=("Arial", 12, "bold")).pack(pady=5)
+        ttk.Label(self.frame_menu, text="Menú Principal", font=("Arial", 12, "bold")).pack(pady=5)
 
-        botones = [
-            ("Inicio / Registro", self.mostrar_inicio_registro),
+        self.menu_opciones_secundarias = [
             ("Gestión de Libros", self.mostrar_libros),
             ("Gestión de Usuarios", self.mostrar_usuarios),
             ("Préstamos / Devoluciones", self.mostrar_prestamos),
             ("Historial de Usuarios", self.mostrar_historial),
             ("Notificaciones", self.mostrar_notificaciones),
         ]
-        for texto, comando in botones:
-            ttk.Button(frame_menu, text=texto, command=comando).pack(fill="x", pady=3)
 
-        ttk.Button(frame_menu, text="Salir", command=self.destroy).pack(fill="x", pady=20)
+        self.frame_menu_botones = ttk.Frame(self.frame_menu)
+        self.frame_menu_botones.pack(fill="x")
+        self._render_menu_buttons()
+
+        ttk.Button(self.frame_menu, text="Salir", command=self.destroy).pack(fill="x", pady=20)
 
         # Frame donde se cambian las secciones
         self.frame_contenido = ttk.Frame(self, padding=10)
@@ -243,6 +245,37 @@ class BibliotecaApp(tk.Tk):
         self.frame_contenido.columnconfigure(0, weight=1)
 
         self.mostrar_inicio_registro()
+
+    def _render_menu_buttons(self):
+        """Muestra solo el registro hasta que el usuario cree una cuenta."""
+
+        for widget in self.frame_menu_botones.winfo_children():
+            widget.destroy()
+
+        ttk.Button(
+            self.frame_menu_botones,
+            text="Inicio / Registro",
+            command=self.mostrar_inicio_registro,
+        ).pack(fill="x", pady=3)
+
+        if self.registro_completado:
+            for texto, comando in self.menu_opciones_secundarias:
+                ttk.Button(self.frame_menu_botones, text=texto, command=comando).pack(
+                    fill="x", pady=3
+                )
+        else:
+            ttk.Label(
+                self.frame_menu_botones,
+                text="Regístrate para desbloquear las demás secciones.",
+                wraplength=180,
+                justify="left",
+            ).pack(fill="x", pady=10)
+
+    def habilitar_menu_principal(self):
+        if self.registro_completado:
+            return
+        self.registro_completado = True
+        self._render_menu_buttons()
 
     # --------- Datos de demo: libros reales ---------
 
@@ -437,6 +470,10 @@ class BibliotecaApp(tk.Tk):
                 "- Notificaciones (seguimiento de altas, bajas y movimientos)\n\n"
                 f"Usuarios registrados: {len(usuarios)} | Libros cargados: {len(libros)}\n"
             )
+            if not self.registro_completado:
+                texto += (
+                    "\n⚠️ Las demás secciones permanecerán ocultas hasta que completes un registro."
+                )
             if extra:
                 texto += "\n" + extra
             self.escribir_en_texto(txt, texto)
@@ -461,6 +498,7 @@ class BibliotecaApp(tk.Tk):
             notificaciones.encolar(f"Nuevo registro de usuario: {nombre}")
             messagebox.showinfo("Registro", "Usuario creado correctamente.")
             mostrar_info_bienvenida(f"Último registro: {nombre} ({usuario_id})")
+            self.habilitar_menu_principal()
             id_entry.delete(0, tk.END)
             nombre_entry.delete(0, tk.END)
             generos_entry.delete(0, tk.END)

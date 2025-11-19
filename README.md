@@ -26,7 +26,7 @@ Esto abrirá la interfaz gráfica descrita en el documento.
 
 ## Datos de demostración
 
-Al iniciarse, la aplicación muestra un **menú principal con formulario de registro** para que puedas crear un nuevo usuario desde la pantalla de bienvenida e ir directo al resto de módulos. Además, se cargan automáticamente:
+Al iniciarse, la aplicación muestra un **menú principal con formulario de registro**. Hasta que completes ese registro inicial, el menú lateral solo mostrará dicha opción para que sigas el flujo solicitado "paso a paso"; una vez registrado, se habilitan las demás secciones. Además, se cargan automáticamente:
 
 - Un catálogo extendido con más de 2 100 libros para que las búsquedas siempre arrojen resultados.
 - 5 usuarios con historiales poblados y preferencias de lectura.
