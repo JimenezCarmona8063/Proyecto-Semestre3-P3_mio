@@ -204,6 +204,253 @@ class ColaPrioridad:
         return [nodo.data for nodo in self._heap.elements_sorted()]
 
 
+# =======================================
+#     ESTRUCTURA DE DATOS: MAP
+# =======================================
+
+
+class Map:
+    def __init__(self):
+        self.__items = []
+
+    def put(self, key, value):
+        for i, (k, v) in enumerate(self.__items):
+            if k == key:
+                self.__items[i] = (key, value)
+                return
+        self.__items.append((key, value))
+
+    def get(self, key):
+        for k, v in self.__items:
+            if k == key:
+                return v
+        raise KeyError(f"key {key} not found")
+
+    def remove(self, key):
+        for i, (k, v) in enumerate(self.__items):
+            if k == key:
+                del self.__items[i]
+                return
+        raise KeyError(f"key {key} not found")
+
+    def __contains__(self, key):
+        return any(k == key for k, v in self.__items)
+
+    def __iter__(self):
+        for k, v in self.__items:
+            yield k, v
+
+    def __len__(self):
+        return len(self.__items)
+
+    def clear(self):
+        self.__items = []
+
+    def keys(self):
+        return [k for k, v in self.__items]
+
+    def values(self):
+        return [v for k, v in self.__items]
+
+    def items(self):
+        return [(k, v) for k, v in self.__items]
+
+    def __str__(self):
+        return "{" + ", ".join(f"{k}: {v}" for k, v in self.__items) + "}"
+
+
+# =======================================
+#     ESTRUCTURA DE DATOS: HASH MAP
+# =======================================
+
+
+class HashMap:
+    def __init__(self, capacity=10, items=None):
+        self.__capacity = capacity
+        self.__size = 0
+        self.__buckets = [[] for _ in range(self.__capacity)]
+
+        if items:
+            for k, v in items:
+                self.put(k, v)
+
+    def __hash(self, key, base=None):
+        if base is None:
+            base = self.__capacity
+        return hash(key) % base
+
+    def put(self, key, value):
+        bucket_index = self.__hash(key)
+        bucket = self.__buckets[bucket_index]
+
+        for i, (k, v) in enumerate(bucket):
+            if k == key:
+                bucket[i] = (key, value)
+                return
+
+        bucket.append((key, value))
+        self.__size += 1
+
+        if self.__size > self.__capacity * 0.7:
+            self.__resize()
+
+    def __resize(self):
+        new_capacity = self.__capacity * 2
+        new_buckets = [[] for _ in range(new_capacity)]
+
+        for bucket in self.__buckets:
+            for (k, v) in bucket:
+                index = hash(k) % new_capacity
+                new_buckets[index].append((k, v))
+
+        self.__capacity = new_capacity
+        self.__buckets = new_buckets
+
+    def __get(self, key):
+        bucket_index = self.__hash(key)
+        bucket = self.__buckets[bucket_index]
+        for k, v in bucket:
+            if k == key:
+                return v, True
+        return None, False
+
+    def get(self, key):
+        v, found = self.__get(key)
+        if found:
+            return v
+        raise KeyError(f"key {key} not found")
+
+    def remove(self, key):
+        bucket_index = self.__hash(key)
+        bucket = self.__buckets[bucket_index]
+        for i, (k, v) in enumerate(bucket):
+            if k == key:
+                del bucket[i]
+                self.__size -= 1
+                return
+        raise KeyError(f"key {key} not found")
+
+    def __contains__(self, key):
+        _, found = self.__get(key)
+        return found
+
+    def __iter__(self):
+        for bucket in self.__buckets:
+            for k, v in bucket:
+                yield k, v
+
+    def __len__(self):
+        return self.__size
+
+    def keys(self):
+        return [k for k, v in self]
+
+    def values(self):
+        return [v for k, v in self]
+
+    def items(self):
+        return [(k, v) for k, v in self]
+
+    def clear(self):
+        self.__capacity = 10
+        self.__buckets = [[] for _ in range(self.__capacity)]
+        self.__size = 0
+
+    def __str__(self):
+        return "{" + ", ".join(f"{k}: {v}" for k, v in self) + "}"
+
+
+# =======================================
+#        ESTRUCTURA DE DATOS: SET
+# =======================================
+
+
+class Set:
+    def __init__(self):
+        self.__capacity = 10
+        self.__size = 0
+        self.__buckets = [[] for _ in range(self.__capacity)]
+
+    def __hash(self, element, base=None):
+        if base is None:
+            base = self.__capacity
+        return hash(element) % base
+
+    def add(self, element):
+        bucket_index = self.__hash(element)
+        bucket = self.__buckets[bucket_index]
+
+        if element not in bucket:
+            bucket.append(element)
+            self.__size += 1
+
+        if self.__size > self.__capacity * 0.7:
+            self.__resize()
+
+    def __resize(self):
+        new_capacity = self.__capacity * 2
+        new_buckets = [[] for _ in range(new_capacity)]
+
+        for bucket in self.__buckets:
+            for element in bucket:
+                index = hash(element) % new_capacity
+                new_buckets[index].append(element)
+
+        self.__capacity = new_capacity
+        self.__buckets = new_buckets
+
+    def remove(self, element):
+        bucket_index = self.__hash(element)
+        bucket = self.__buckets[bucket_index]
+
+        if element not in bucket:
+            raise KeyError(f"{element}")
+
+        bucket.remove(element)
+        self.__size -= 1
+
+    def discard(self, element):
+        bucket_index = self.__hash(element)
+        bucket = self.__buckets[bucket_index]
+
+        if element in bucket:
+            bucket.remove(element)
+            self.__size -= 1
+
+    def is_empty(self):
+        return self.__size == 0
+
+    def __contains__(self, element):
+        bucket_index = self.__hash(element)
+        return element in self.__buckets[bucket_index]
+
+    def __iter__(self):
+        for bucket in self.__buckets:
+            for e in bucket:
+                yield e
+
+    def clear(self):
+        self.__init__()
+
+    def union(self, s2):
+        new_set = Set()
+        for e in self:
+            new_set.add(e)
+        for e in s2:
+            new_set.add(e)
+        return new_set
+
+    def intersection(self, s2):
+        new_set = Set()
+        for e in self:
+            if e in s2:
+                new_set.add(e)
+        return new_set
+
+    def __str__(self):
+        return "{" + ", ".join(str(e) for e in self) + "}"
+
+
 # ---------- Algoritmo sobre cadenas (búsqueda) -----
 
 
