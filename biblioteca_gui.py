@@ -831,6 +831,10 @@ usuarios = {}
 prestamos_activos = ListaEnlazada()
 reservas = ColaPrioridad()
 notificaciones = Cola()
+libros_hash = HashMap()
+usuarios_map = Map()
+generos_registrados = Set()
+titulos_bst = BST()
 
 
 def registrar_historial(usuario_id, descripcion):
@@ -840,6 +844,107 @@ def registrar_historial(usuario_id, descripcion):
     if not usuario:
         return
     usuario.historial.agregar(descripcion)
+
+
+def registrar_libro_en_indices(libro):
+    """Mantiene sincronizados HashMap, Set y BST con el catálogo."""
+
+    libros_hash.put(libro.id, libro)
+    for genero in libro.generos:
+        generos_registrados.add(genero)
+    titulos_bst.add(libro.titulo.lower())
+
+
+def reconstruir_indices_libros():
+    """Reconstruye índices derivados tras altas/bajas masivas."""
+
+    libros_hash.clear()
+    generos_registrados.clear()
+    titulos_bst.root = None
+    for libro in libros.values():
+        registrar_libro_en_indices(libro)
+
+
+def eliminar_libro_de_indices(libro):
+    """Quita un libro de las estructuras auxiliares personalizadas."""
+
+    try:
+        libros_hash.remove(libro.id)
+    except KeyError:
+        pass
+    reconstruir_indices_libros()
+
+
+def obtener_libro_por_hash(libro_id):
+    """Busca un libro priorizando la HashMap personalizada."""
+
+    try:
+        return libros_hash.get(libro_id)
+    except KeyError:
+        return libros.get(libro_id)
+
+
+def registrar_usuario_en_map(usuario):
+    """Sincroniza el usuario en el Map lineal."""
+
+    usuarios_map.put(usuario.id, usuario)
+
+
+def eliminar_usuario_en_map(usuario_id):
+    """Elimina un usuario del Map lineal si existe."""
+
+    try:
+        usuarios_map.remove(usuario_id)
+    except KeyError:
+        pass
+
+
+def obtener_usuario_desde_map(usuario_id):
+    try:
+        return usuarios_map.get(usuario_id)
+    except KeyError:
+        return usuarios.get(usuario_id)
+
+
+def coincide_con_bmh(texto, patron):
+    """Usa Boyer-Moore-Horspool (case-insensitive) para coincidencias."""
+
+    if not patron:
+        return True
+    return bmh(texto.lower(), patron.lower()) != -1
+
+
+def sugerencias_por_hamming(valor, universo):
+    """Sugiere claves similares de igual longitud usando Hamming."""
+
+    if not valor:
+        return []
+    candidatos = []
+    for opcion in universo:
+        if len(opcion) != len(valor):
+            continue
+        try:
+            distancia = hamming(valor.lower(), opcion.lower())
+        except Exception:
+            continue
+        candidatos.append((distancia, opcion))
+    candidatos.sort(key=lambda x: x[0])
+    return [op for dist, op in candidatos if dist > 0 and dist <= 2][:3]
+
+
+def titulos_en_orden():
+    """Devuelve títulos ordenados alfabéticamente desde el BST."""
+
+    titulos = []
+
+    def _inorder(node):
+        if node:
+            _inorder(node.left)
+            titulos.append(node.data)
+            _inorder(node.right)
+
+    _inorder(titulos_bst.root)
+    return titulos
 
 
 # ---------------- INTERFAZ GRÁFICA ------------------
@@ -1068,6 +1173,7 @@ class BibliotecaApp(tk.Tk):
 
         for libro_id, titulo, autor, generos in demo_libros:
             libros[libro_id] = Libro(libro_id, titulo, autor, generos)
+            registrar_libro_en_indices(libros[libro_id])
 
         self._generar_catalogo_masivo()
 
@@ -1084,6 +1190,7 @@ class BibliotecaApp(tk.Tk):
             usuario = Usuario(usuario_id, nombre, generos)
             usuario.historial.agregar(f"Registro en la plataforma el {registro_fecha}")
             usuarios[usuario_id] = usuario
+            registrar_usuario_en_map(usuario)
 
         historial_extra = {
             "U001": [
@@ -1171,6 +1278,7 @@ class BibliotecaApp(tk.Tk):
             autor = autores_genericos[(idx - 1) % len(autores_genericos)]
             genero = generos_genericos[(idx - 1) % len(generos_genericos)]
             libros[libro_id] = Libro(libro_id, titulo, autor, [genero])
+            registrar_libro_en_indices(libros[libro_id])
             creados += 1
             idx += 1
 
@@ -1304,6 +1412,7 @@ class BibliotecaApp(tk.Tk):
             fecha_registro = datetime.now().strftime("%d/%m/%Y")
             nuevo_usuario.historial.agregar(f"Registro inicial desde el menú principal el {fecha_registro}")
             usuarios[usuario_id] = nuevo_usuario
+            registrar_usuario_en_map(nuevo_usuario)
             self._alimentar_autocorrector_con_usuario(nuevo_usuario)
             notificaciones.encolar(f"Nuevo registro de usuario: {nombre}")
             messagebox.showinfo("Registro", "Usuario creado correctamente.")
@@ -1373,9 +1482,11 @@ class BibliotecaApp(tk.Tk):
                 self.listar_libros_texto(txt)
                 return
             resultados = []
+            catalogo_concatenado = []
             for libro in libros.values():
                 texto = f"{libro.titulo} {libro.autor} {' '.join(libro.generos)}"
-                if contiene_patron(texto, patron):
+                catalogo_concatenado.append(libro.titulo.lower())
+                if coincide_con_bmh(texto, patron):
                     resultados.append(libro)
             if not resultados:
                 self.escribir_en_texto(txt, "No se encontraron libros.")
@@ -1384,6 +1495,11 @@ class BibliotecaApp(tk.Tk):
                 for l in resultados:
                     disp = "Disponible" if l.disponible else "Prestado"
                     s += f"[{l.id}] {l.titulo} - {l.autor} | {disp}\n"
+                concatenado = " ".join(catalogo_concatenado)
+                if len(patron) <= len(concatenado):
+                    indices_seq = seq_search_all(concatenado, patron.lower())
+                    if indices_seq:
+                        s += f"\nCoincidencias detectadas (seq_search): {len(indices_seq)}\n"
                 self.escribir_en_texto(txt, s)
             usuario_hist = usuario_accion_entry.get().strip()
             if usuario_hist:
@@ -1442,6 +1558,7 @@ class BibliotecaApp(tk.Tk):
                     )
                     return
                 libros[libro_id] = Libro(libro_id, titulo, autor, generos, portada)
+                registrar_libro_en_indices(libros[libro_id])
                 self._alimentar_autocorrector_con_libro(libros[libro_id])
                 notificaciones.encolar(f"Nuevo libro registrado: {titulo}")
                 usuario_hist = modal_usuario_entry.get().strip()
@@ -1472,6 +1589,7 @@ class BibliotecaApp(tk.Tk):
                 messagebox.showwarning("Error", "Libro no encontrado.")
                 return
             eliminado = libros.pop(libro_id)
+            eliminar_libro_de_indices(eliminado)
             notificaciones.encolar(f"Libro eliminado: {eliminado.titulo}")
             usuario_hist = usuario_accion_entry.get().strip()
             if usuario_hist:
@@ -1508,6 +1626,11 @@ class BibliotecaApp(tk.Tk):
             disp = "Disponible" if l.disponible else "Prestado"
             s += f"[{l.id}] {l.titulo} - {l.autor}\n"
             s += f"   Géneros: {', '.join(l.generos)} | {disp}\n"
+        if not generos_registrados.is_empty():
+            s += f"\nGéneros únicos (Set): {generos_registrados}\n"
+        ordenados = titulos_en_orden()[:5]
+        if ordenados:
+            s += "Títulos en orden (BST): " + ", ".join(ordenados) + "\n"
         self.escribir_en_texto(txt, s)
 
     def mostrar_galeria_portadas(self):
@@ -1607,6 +1730,7 @@ class BibliotecaApp(tk.Tk):
             generos_texto = self.autocorregir_cadena(generos_entry.get().strip())
             generos = [g.strip() for g in generos_texto.split(",") if g.strip()]
             usuarios[usuario_id] = Usuario(usuario_id, nombre, generos)
+            registrar_usuario_en_map(usuarios[usuario_id])
             self._alimentar_autocorrector_con_usuario(usuarios[usuario_id])
             registrar_historial(
                 usuario_id,
@@ -1627,8 +1751,14 @@ class BibliotecaApp(tk.Tk):
             resultados = []
             for u in usuarios.values():
                 texto = f"{u.id} {u.nombre}"
-                if contiene_patron(texto, patron):
+                if coincide_con_bmh(texto, patron):
                     resultados.append(u)
+            try:
+                usuario_en_mapa = obtener_usuario_desde_map(patron)
+                if usuario_en_mapa and usuario_en_mapa not in resultados:
+                    resultados.append(usuario_en_mapa)
+            except Exception:
+                pass
             if not resultados:
                 self.escribir_en_texto(txt, "No se encontraron usuarios.")
                 return
@@ -1676,6 +1806,7 @@ class BibliotecaApp(tk.Tk):
                 ):
                     return
             registrar_historial(usuario_id, "Cuenta eliminada por el administrador")
+            eliminar_usuario_en_map(usuario_id)
             del usuarios[usuario_id]
             notificaciones.encolar(
                 f"Usuario eliminado: {usuario.nombre} (ID {usuario_id})"
@@ -1703,6 +1834,7 @@ class BibliotecaApp(tk.Tk):
                 estado = "Sin préstamos activos"
             s += f"   Estado de préstamos: {estado}\n"
             s += f"   Géneros preferidos: {', '.join(u.generos_preferidos)}\n"
+            s += f"   En Map auxiliar: {'Sí' if u.id in usuarios_map else 'No'}\n"
         self.escribir_en_texto(txt, s)
 
     # -------------- Préstamos / Devoluciones --------
@@ -1773,15 +1905,22 @@ class BibliotecaApp(tk.Tk):
             if not fecha_p or not fecha_d:
                 messagebox.showwarning("Datos incompletos", "Captura las fechas de préstamo y devolución.")
                 return
-            if usuario_id not in usuarios:
-                messagebox.showwarning("Error", "Usuario no encontrado.")
+            usuario = obtener_usuario_desde_map(usuario_id)
+            if not usuario:
+                sugeridos = sugerencias_por_hamming(usuario_id, usuarios.keys())
+                mensaje = "Usuario no encontrado."
+                if sugeridos:
+                    mensaje += f" ¿Quizás quisiste decir: {', '.join(sugeridos)}?"
+                messagebox.showwarning("Error", mensaje)
                 return
-            if libro_id not in libros:
-                messagebox.showwarning("Error", "Libro no encontrado.")
+            libro = obtener_libro_por_hash(libro_id)
+            if not libro:
+                sugeridos = sugerencias_por_hamming(libro_id, libros.keys())
+                mensaje = "Libro no encontrado."
+                if sugeridos:
+                    mensaje += f" Coincidencias cercanas: {', '.join(sugeridos)}"
+                messagebox.showwarning("Error", mensaje)
                 return
-
-            usuario = usuarios[usuario_id]
-            libro = libros[libro_id]
 
             if nombre_usuario and nombre_usuario.lower() != usuario.nombre.lower():
                 messagebox.showwarning(
@@ -1834,14 +1973,21 @@ class BibliotecaApp(tk.Tk):
             usuario_id = u_entry.get().strip()
             nombre_usuario = self.autocorregir_cadena(nombre_entry.get().strip())
             libro_id = l_entry.get().strip()
-            if usuario_id not in usuarios or libro_id not in libros:
-                messagebox.showwarning(
-                    "Error",
-                    "Debe indicar un usuario y un libro válidos para registrar la devolución.",
-                )
+            usuario = obtener_usuario_desde_map(usuario_id)
+            libro = obtener_libro_por_hash(libro_id)
+            if not usuario or not libro:
+                mensaje = "Debe indicar un usuario y un libro válidos para registrar la devolución."
+                sugeridos_u = sugerencias_por_hamming(usuario_id, usuarios.keys())
+                sugeridos_l = sugerencias_por_hamming(libro_id, libros.keys())
+                extras = []
+                if sugeridos_u:
+                    extras.append(f"Usuarios similares: {', '.join(sugeridos_u)}")
+                if sugeridos_l:
+                    extras.append(f"Libros similares: {', '.join(sugeridos_l)}")
+                if extras:
+                    mensaje += "\n" + " | ".join(extras)
+                messagebox.showwarning("Error", mensaje)
                 return
-            usuario = usuarios[usuario_id]
-            libro = libros[libro_id]
             if nombre_usuario and nombre_usuario.lower() != usuario.nombre.lower():
                 messagebox.showwarning(
                     "Advertencia",
@@ -1944,8 +2090,8 @@ class BibliotecaApp(tk.Tk):
             if not p.activo:
                 continue
             vacio = False
-            libro = libros.get(p.libro_id)
-            usuario = usuarios.get(p.usuario_id)
+            libro = obtener_libro_por_hash(p.libro_id)
+            usuario = obtener_usuario_desde_map(p.usuario_id)
             titulo = libro.titulo if libro else p.libro_id
             autor = libro.autor if libro else "Autor no registrado"
             nombre_usuario = usuario.nombre if usuario else p.usuario_id
@@ -1963,8 +2109,8 @@ class BibliotecaApp(tk.Tk):
             return
         s = "Reservas (cola de prioridad):\n\n"
         for r in reservas.elementos():
-            u = usuarios.get(r.usuario_id)
-            l = libros.get(r.libro_id)
+            u = obtener_usuario_desde_map(r.usuario_id)
+            l = obtener_libro_por_hash(r.libro_id)
             s += f"Prioridad {r.prioridad} -> "
             s += f"Usuario: {u.nombre if u else r.usuario_id} | "
             s += f"Libro: {l.titulo if l else r.libro_id}\n"
