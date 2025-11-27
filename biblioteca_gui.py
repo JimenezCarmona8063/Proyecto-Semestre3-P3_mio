@@ -700,18 +700,18 @@ class BibliotecaApp(tk.Tk):
         for widget in self.frame_menu_botones.winfo_children():
             widget.destroy()
 
-        ttk.Button(
-            self.frame_menu_botones,
-            text="Inicio / Registro",
-            command=self.mostrar_inicio_registro,
-        ).pack(fill="x", pady=3)
-
         if self.registro_completado:
             for texto, comando in self.menu_opciones_secundarias:
                 ttk.Button(self.frame_menu_botones, text=texto, command=comando).pack(
                     fill="x", pady=3
                 )
         else:
+            ttk.Button(
+                self.frame_menu_botones,
+                text="Inicio / Registro",
+                command=self.mostrar_inicio_registro,
+            ).pack(fill="x", pady=3)
+
             ttk.Label(
                 self.frame_menu_botones,
                 text="Regístrate para desbloquear las demás secciones.",
