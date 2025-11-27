@@ -451,6 +451,151 @@ class Set:
         return "{" + ", ".join(str(e) for e in self) + "}"
 
 
+# =======================================
+#  ALGORITMOS Y ESTRUCTURAS ADICIONALES
+# =======================================
+
+
+def bmh(text, pattern):
+    n, m = len(text), len(pattern)
+
+    _m = m - 1
+    bad_chars = {}
+    for c in pattern:
+        bad_chars[c] = _m
+        _m -= 1
+
+    i = 0
+    while i <= n - m:
+        j = m - 1
+        while j >= 0 and text[i + j] == pattern[j]:
+            j -= 1
+        if j < 0:
+            return i
+
+        try:
+            i += bad_chars.get(text[i + j])
+        except Exception:
+            i += m - 1
+
+    return -1
+
+
+def hamming(s1, s2):
+    if len(s1) != len(s2):
+        raise Exception("Strings must be equal lenght")
+
+    sumatoria = 0
+    for i in range(len(s1)):
+        if s1[i] != s2[i]:
+            sumatoria += 1
+
+    return sumatoria
+
+
+class TNode:
+    def __init__(self, data):
+        self.data = data
+        self.left = None
+        self.right = None
+
+
+class BST:
+    def __init__(self):
+        self.root = None
+
+    def add(self, data):
+        self.root = self.__recursive_add(self.root, data)
+
+    def __recursive_add(self, node, data):
+        if node is None:
+            return TNode(data)
+        if data < node.data:
+            node.left = self.__recursive_add(node.left, data)
+        elif data > node.data:
+            node.right = self.__recursive_add(node.right, data)
+        else:
+            # Eliminar o permitir duplicados según necesidad futura
+            pass
+        return node
+
+    def remove(self, data):
+        self.root = self.__recursive_remove(self.root, data)
+
+    def __recursive_remove(self, node, data):
+        if node is None:
+            return None
+        if data < node.data:
+            node.left = self.__recursive_remove(node.left, data)
+        elif data > node.data:
+            node.right = self.__recursive_remove(node.right, data)
+        else:
+            if node.left is None and node.right is None:
+                return None
+            if node.right is None:
+                return node.left
+            if node.left is None:
+                return node.right
+
+            successor = self.__find_min(node.right)
+            node.data = successor.data
+            node.right = self.__recursive_remove(node.right, successor.data)
+        return node
+
+    def __find_min(self, node):
+        while node.left:
+            node = node.left
+        return node
+
+    def __tree_repr(self, node, n):
+        if node:
+            self.__tree_repr(node.left, n + 1)
+            print("       " * n, f"{node.data}")
+            self.__tree_repr(node.right, n + 1)
+
+    def __recursive_str(self, node):
+        if node:
+            self.__recursive_str(node.left)
+            print(f"{node.data}", end=", ")
+            self.__recursive_str(node.right)
+
+    def __str__(self):
+        print("[", end="")
+        self.__recursive_str(self.root)
+        return "" if self.is_empty() else "\b\b]"
+
+    def is_empty(self):
+        return self.root is None
+
+
+def seq_searh(texto, patron):
+    indext = 0
+    indexp = 0
+    for char in texto:
+        if char == patron[indexp]:
+            indexp += 1
+            if indexp == len(patron):
+                return indext - len(patron) + 1
+        elif char != patron[indexp]:
+            indexp = 0
+        indext += 1
+    return -1
+
+
+def seq_search_all(texto, patron):
+    indices = []
+    corte = 0
+    while len(texto) > len(patron):
+        index = seq_searh(texto, patron)
+        if index >= 0:
+            indices.append(index + corte)
+            texto = texto[index + len(patron) :]
+            corte += index + len(patron)
+        else:
+            break
+    return indices
+
+
 # ---------- Algoritmo sobre cadenas (búsqueda) -----
 
 
