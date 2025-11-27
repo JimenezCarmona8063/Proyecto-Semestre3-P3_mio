@@ -1141,18 +1141,6 @@ class BibliotecaApp(tk.Tk):
         widget_text.insert(tk.END, texto)
         widget_text.config(state="disabled")
 
-    def autocorregir_cadena(self, texto):
-        return texto
-
-    def _alimentar_autocorrector_con_libro(self, libro):
-        return None
-
-    def _alimentar_autocorrector_con_usuario(self, usuario):
-        return None
-
-    def _sembrar_autocorrector(self):
-        return None
-
     # --------- Secciones de la interfaz ---------
 
     def mostrar_inicio_registro(self):
@@ -1209,18 +1197,17 @@ class BibliotecaApp(tk.Tk):
             if usuario_id in usuarios:
                 messagebox.showwarning("Error", "Ya existe un usuario con ese ID.")
                 return
-            nombre = self.autocorregir_cadena(nombre_entry.get().strip())
+            nombre = nombre_entry.get().strip()
             if not nombre:
                 messagebox.showwarning("Error", "El nombre es obligatorio.")
                 return
-            generos_texto = self.autocorregir_cadena(generos_entry.get().strip())
+            generos_texto = generos_entry.get().strip()
             generos = [g.strip() for g in generos_texto.split(",") if g.strip()]
             nuevo_usuario = Usuario(usuario_id, nombre, generos)
             fecha_registro = datetime.now().strftime("%d/%m/%Y")
             nuevo_usuario.historial.agregar(f"Registro inicial desde el menú principal el {fecha_registro}")
             usuarios[usuario_id] = nuevo_usuario
             registrar_usuario_en_map(nuevo_usuario)
-            self._alimentar_autocorrector_con_usuario(nuevo_usuario)
             notificaciones.encolar(f"Nuevo registro de usuario: {nombre}")
             messagebox.showinfo("Registro", "Usuario creado correctamente.")
             mostrar_info_bienvenida(f"Último registro: {nombre} ({usuario_id})")
@@ -1284,7 +1271,7 @@ class BibliotecaApp(tk.Tk):
             self.listar_libros_texto(txt)
 
         def ejecutar_busqueda():
-            patron = self.autocorregir_cadena(busqueda_entry.get().strip())
+            patron = busqueda_entry.get().strip()
             if not patron:
                 self.listar_libros_texto(txt)
                 return
@@ -1354,9 +1341,9 @@ class BibliotecaApp(tk.Tk):
                 if libro_id in libros:
                     messagebox.showwarning("Error", "Ya existe un libro con ese ID.")
                     return
-                titulo = self.autocorregir_cadena(modal_titulo_entry.get().strip())
-                autor = self.autocorregir_cadena(modal_autor_entry.get().strip())
-                generos_texto = self.autocorregir_cadena(modal_generos_entry.get().strip())
+                titulo = modal_titulo_entry.get().strip()
+                autor = modal_autor_entry.get().strip()
+                generos_texto = modal_generos_entry.get().strip()
                 generos = [g.strip() for g in generos_texto.split(",") if g.strip()]
                 portada = modal_portada_entry.get().strip() or None
                 if not titulo or not autor or not generos:
@@ -1366,7 +1353,6 @@ class BibliotecaApp(tk.Tk):
                     return
                 libros[libro_id] = Libro(libro_id, titulo, autor, generos, portada)
                 registrar_libro_en_indices(libros[libro_id])
-                self._alimentar_autocorrector_con_libro(libros[libro_id])
                 notificaciones.encolar(f"Nuevo libro registrado: {titulo}")
                 usuario_hist = modal_usuario_entry.get().strip()
                 if usuario_hist:
@@ -1533,12 +1519,11 @@ class BibliotecaApp(tk.Tk):
             if usuario_id in usuarios:
                 messagebox.showwarning("Error", "Ya existe un usuario con ese ID.")
                 return
-            nombre = self.autocorregir_cadena(nombre_entry.get().strip())
-            generos_texto = self.autocorregir_cadena(generos_entry.get().strip())
+            nombre = nombre_entry.get().strip()
+            generos_texto = generos_entry.get().strip()
             generos = [g.strip() for g in generos_texto.split(",") if g.strip()]
             usuarios[usuario_id] = Usuario(usuario_id, nombre, generos)
             registrar_usuario_en_map(usuarios[usuario_id])
-            self._alimentar_autocorrector_con_usuario(usuarios[usuario_id])
             registrar_historial(
                 usuario_id,
                 f"Usuario registrado el {datetime.now().strftime('%d/%m/%Y')}"
@@ -1551,7 +1536,7 @@ class BibliotecaApp(tk.Tk):
             self.listar_usuarios_texto(txt)
 
         def ejecutar_busqueda(patron):
-            patron = self.autocorregir_cadena(patron or busqueda_entry.get().strip())
+            patron = patron or busqueda_entry.get().strip()
             if not patron:
                 self.listar_usuarios_texto(txt)
                 return
@@ -1605,7 +1590,7 @@ class BibliotecaApp(tk.Tk):
             if not usuario:
                 messagebox.showwarning("Error", "Usuario no encontrado.")
                 return
-            nombre_ref = self.autocorregir_cadena(elim_nombre_entry.get().strip())
+            nombre_ref = elim_nombre_entry.get().strip()
             if nombre_ref and nombre_ref.lower() != usuario.nombre.lower():
                 if not messagebox.askyesno(
                     "Confirmar",
@@ -1697,10 +1682,10 @@ class BibliotecaApp(tk.Tk):
 
         def registrar_prestamo():
             usuario_id = u_entry.get().strip()
-            nombre_usuario = self.autocorregir_cadena(nombre_entry.get().strip())
+            nombre_usuario = nombre_entry.get().strip()
             libro_id = l_entry.get().strip()
-            titulo_reportado = self.autocorregir_cadena(titulo_entry.get().strip())
-            autor_reportado = self.autocorregir_cadena(autor_entry.get().strip())
+            titulo_reportado = titulo_entry.get().strip()
+            autor_reportado = autor_entry.get().strip()
             fecha_p = fp_entry.get().strip()
             fecha_d = fd_entry.get().strip()
             if not nombre_usuario:
@@ -1778,7 +1763,7 @@ class BibliotecaApp(tk.Tk):
 
         def devolver():
             usuario_id = u_entry.get().strip()
-            nombre_usuario = self.autocorregir_cadena(nombre_entry.get().strip())
+            nombre_usuario = nombre_entry.get().strip()
             libro_id = l_entry.get().strip()
             usuario = obtener_usuario_desde_map(usuario_id)
             libro = obtener_libro_por_hash(libro_id)
@@ -2055,7 +2040,7 @@ class BibliotecaApp(tk.Tk):
             if not usuario_obj:
                 messagebox.showwarning("Error", "Usuario no encontrado.")
                 return
-            actividad = self.autocorregir_cadena(act_entry.get().strip())
+            actividad = act_entry.get().strip()
             if not actividad:
                 messagebox.showwarning("Error", "Escriba una actividad.")
                 return
