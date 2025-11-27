@@ -451,6 +451,173 @@ class Set:
         return "{" + ", ".join(str(e) for e in self) + "}"
 
 
+# ============================================
+#        ESTRUCTURA DE DATOS: AUTOCORRECTOR
+#      (Trie + BK-Tree + Distancia edición)
+# ============================================
+
+
+class TrieNode:
+    def __init__(self):
+        self.children = {}
+        self.is_end = False
+        self.freq = 0    # frecuencia de la palabra
+
+
+class Trie:
+    def __init__(self):
+        self.root = TrieNode()
+
+    def insert(self, word):
+        node = self.root
+        for ch in word.lower():
+            if ch not in node.children:
+                node.children[ch] = TrieNode()
+            node = node.children[ch]
+        node.is_end = True
+        node.freq += 1
+
+    def autocomplete(self, prefix):
+        """Regresa todas las palabras que empiezan con un prefijo"""
+        node = self.root
+        for ch in prefix.lower():
+            if ch not in node.children:
+                return []
+            node = node.children[ch]
+        results = []
+        self.__dfs(node, prefix, results)
+        return sorted(results, key=lambda x: -x[1])  # ordenar por frecuencia
+
+    def __dfs(self, node, prefix, results):
+        if node.is_end:
+            results.append((prefix, node.freq))
+        for ch, nxt in node.children.items():
+            self.__dfs(nxt, prefix + ch, results)
+
+
+# ======================
+#   DISTANCIA LEVENSHTEIN
+# ======================
+
+
+def levenshtein(a, b):
+    """Distancia mínima de edición entre dos strings"""
+    n, m = len(a), len(b)
+    dp = [[0]*(m+1) for _ in range(n+1)]
+
+    for i in range(n+1):
+        dp[i][0] = i
+    for j in range(m+1):
+        dp[0][j] = j
+
+    for i in range(1, n+1):
+        for j in range(1, m+1):
+            cost = 0 if a[i-1] == b[j-1] else 1
+            dp[i][j] = min(
+                dp[i-1][j] + 1,     # eliminar
+                dp[i][j-1] + 1,     # insertar
+                dp[i-1][j-1] + cost # reemplazar
+            )
+
+    return dp[n][m]
+
+
+# ======================
+#   BK-TREE
+# ======================
+
+
+class BKNode:
+    def __init__(self, word):
+        self.word = word
+        self.children = {}  # distancia -> nodo
+
+
+class BKTree:
+    def __init__(self):
+        self.root = None
+
+    def add(self, word):
+        if self.root is None:
+            self.root = BKNode(word)
+            return
+
+        curr = self.root
+        while True:
+            dist = levenshtein(word, curr.word)
+            if dist == 0:
+                return
+            if dist not in curr.children:
+                curr.children[dist] = BKNode(word)
+                return
+            curr = curr.children[dist]
+
+    def search(self, word, max_dist=2):
+        """Busca palabras similares dentro de una distancia máxima."""
+        if self.root is None:
+            return []
+        results = []
+        self.__search(self.root, word, max_dist, results)
+        return results
+
+    def __search(self, node, word, max_dist, results):
+        dist = levenshtein(word, node.word)
+        if dist <= max_dist:
+            results.append((node.word, dist))
+
+        for d in range(dist - max_dist, dist + max_dist + 1):
+            if d in node.children:
+                self.__search(node.children[d], word, max_dist, results)
+
+
+# ===========================
+#       AUTOCORRECTOR COMPLETO
+# ===========================
+
+
+class AutoCorrector:
+    def __init__(self):
+        self.trie = Trie()
+        self.bktree = BKTree()
+
+    def add_word(self, word):
+        word = word.lower()
+        self.trie.insert(word)
+        self.bktree.add(word)
+
+    def autocomplete(self, prefix):
+        """Sugiere palabras que empiezan igual."""
+        return self.trie.autocomplete(prefix)
+
+    def autocorrect(self, word, max_dist=2):
+        """Sugiere palabras similares (corrige errores)."""
+        matches = self.bktree.search(word.lower(), max_dist)
+        matches.sort(key=lambda x: x[1])  # ordenar por menor distancia
+        return matches[:5]  # top 5
+
+
+# ===========================
+#            EJEMPLO
+# ===========================
+
+
+ac = AutoCorrector()
+
+diccionario = [
+    "hola", "holanda", "hole", "hilo", "hula",
+    "casa", "caso", "casita", "caseta",
+    "perro", "persona", "perrera"
+]
+
+for w in diccionario:
+    ac.add_word(w)
+
+print("Autocompletar 'ca':")
+print(ac.autocomplete("ca"))
+
+print("\nAutocorregir 'hols':")
+print(ac.autocorrect("hols"))
+
 # =======================================
 #  ALGORITMOS Y ESTRUCTURAS ADICIONALES
 # =======================================
@@ -688,10 +855,12 @@ class BibliotecaApp(tk.Tk):
         self.imagenes_libros = []
         self.demo_cargado = False
         self.registro_completado = False
+        self.autocorrector = AutoCorrector()
 
         self._configurar_estilos()
         self._crear_layout()
         self.cargar_datos_demo()  # llena con libros reales
+        self._sembrar_autocorrector()
 
     def _configurar_estilos(self):
         """Define una paleta y estilos coherentes para toda la interfaz."""
@@ -1033,6 +1202,42 @@ class BibliotecaApp(tk.Tk):
         widget_text.insert(tk.END, texto)
         widget_text.config(state="disabled")
 
+    def autocorregir_cadena(self, texto):
+        if not texto:
+            return texto
+        palabras_corregidas = []
+        for palabra in texto.split():
+            if any(ch.isalpha() for ch in palabra):
+                sugerencias = self.autocorrector.autocorrect(palabra)
+                if sugerencias:
+                    palabras_corregidas.append(sugerencias[0][0])
+                else:
+                    palabras_corregidas.append(palabra)
+            else:
+                palabras_corregidas.append(palabra)
+        return " ".join(palabras_corregidas)
+
+    def _alimentar_autocorrector_con_libro(self, libro):
+        for parte in [libro.titulo, libro.autor]:
+            for palabra in parte.split():
+                self.autocorrector.add_word(palabra)
+        for genero in libro.generos:
+            for palabra in genero.split():
+                self.autocorrector.add_word(palabra)
+
+    def _alimentar_autocorrector_con_usuario(self, usuario):
+        for palabra in usuario.nombre.split():
+            self.autocorrector.add_word(palabra)
+        for genero in usuario.generos_preferidos:
+            for palabra in genero.split():
+                self.autocorrector.add_word(palabra)
+
+    def _sembrar_autocorrector(self):
+        for libro in libros.values():
+            self._alimentar_autocorrector_con_libro(libro)
+        for usuario in usuarios.values():
+            self._alimentar_autocorrector_con_usuario(usuario)
+
     # --------- Secciones de la interfaz ---------
 
     def mostrar_inicio_registro(self):
@@ -1089,15 +1294,17 @@ class BibliotecaApp(tk.Tk):
             if usuario_id in usuarios:
                 messagebox.showwarning("Error", "Ya existe un usuario con ese ID.")
                 return
-            nombre = nombre_entry.get().strip()
+            nombre = self.autocorregir_cadena(nombre_entry.get().strip())
             if not nombre:
                 messagebox.showwarning("Error", "El nombre es obligatorio.")
                 return
-            generos = [g.strip() for g in generos_entry.get().split(",") if g.strip()]
+            generos_texto = self.autocorregir_cadena(generos_entry.get().strip())
+            generos = [g.strip() for g in generos_texto.split(",") if g.strip()]
             nuevo_usuario = Usuario(usuario_id, nombre, generos)
             fecha_registro = datetime.now().strftime("%d/%m/%Y")
             nuevo_usuario.historial.agregar(f"Registro inicial desde el menú principal el {fecha_registro}")
             usuarios[usuario_id] = nuevo_usuario
+            self._alimentar_autocorrector_con_usuario(nuevo_usuario)
             notificaciones.encolar(f"Nuevo registro de usuario: {nombre}")
             messagebox.showinfo("Registro", "Usuario creado correctamente.")
             mostrar_info_bienvenida(f"Último registro: {nombre} ({usuario_id})")
@@ -1161,7 +1368,7 @@ class BibliotecaApp(tk.Tk):
             self.listar_libros_texto(txt)
 
         def ejecutar_busqueda():
-            patron = busqueda_entry.get().strip()
+            patron = self.autocorregir_cadena(busqueda_entry.get().strip())
             if not patron:
                 self.listar_libros_texto(txt)
                 return
@@ -1224,9 +1431,10 @@ class BibliotecaApp(tk.Tk):
                 if libro_id in libros:
                     messagebox.showwarning("Error", "Ya existe un libro con ese ID.")
                     return
-                titulo = modal_titulo_entry.get().strip()
-                autor = modal_autor_entry.get().strip()
-                generos = [g.strip() for g in modal_generos_entry.get().split(",") if g.strip()]
+                titulo = self.autocorregir_cadena(modal_titulo_entry.get().strip())
+                autor = self.autocorregir_cadena(modal_autor_entry.get().strip())
+                generos_texto = self.autocorregir_cadena(modal_generos_entry.get().strip())
+                generos = [g.strip() for g in generos_texto.split(",") if g.strip()]
                 portada = modal_portada_entry.get().strip() or None
                 if not titulo or not autor or not generos:
                     messagebox.showwarning(
@@ -1234,6 +1442,7 @@ class BibliotecaApp(tk.Tk):
                     )
                     return
                 libros[libro_id] = Libro(libro_id, titulo, autor, generos, portada)
+                self._alimentar_autocorrector_con_libro(libros[libro_id])
                 notificaciones.encolar(f"Nuevo libro registrado: {titulo}")
                 usuario_hist = modal_usuario_entry.get().strip()
                 if usuario_hist:
@@ -1394,9 +1603,11 @@ class BibliotecaApp(tk.Tk):
             if usuario_id in usuarios:
                 messagebox.showwarning("Error", "Ya existe un usuario con ese ID.")
                 return
-            nombre = nombre_entry.get().strip()
-            generos = [g.strip() for g in generos_entry.get().split(",") if g.strip()]
+            nombre = self.autocorregir_cadena(nombre_entry.get().strip())
+            generos_texto = self.autocorregir_cadena(generos_entry.get().strip())
+            generos = [g.strip() for g in generos_texto.split(",") if g.strip()]
             usuarios[usuario_id] = Usuario(usuario_id, nombre, generos)
+            self._alimentar_autocorrector_con_usuario(usuarios[usuario_id])
             registrar_historial(
                 usuario_id,
                 f"Usuario registrado el {datetime.now().strftime('%d/%m/%Y')}"
@@ -1409,7 +1620,7 @@ class BibliotecaApp(tk.Tk):
             self.listar_usuarios_texto(txt)
 
         def ejecutar_busqueda(patron):
-            patron = patron or busqueda_entry.get().strip()
+            patron = self.autocorregir_cadena(patron or busqueda_entry.get().strip())
             if not patron:
                 self.listar_usuarios_texto(txt)
                 return
@@ -1457,7 +1668,7 @@ class BibliotecaApp(tk.Tk):
             if not usuario:
                 messagebox.showwarning("Error", "Usuario no encontrado.")
                 return
-            nombre_ref = elim_nombre_entry.get().strip()
+            nombre_ref = self.autocorregir_cadena(elim_nombre_entry.get().strip())
             if nombre_ref and nombre_ref.lower() != usuario.nombre.lower():
                 if not messagebox.askyesno(
                     "Confirmar",
@@ -1547,10 +1758,10 @@ class BibliotecaApp(tk.Tk):
 
         def registrar_prestamo():
             usuario_id = u_entry.get().strip()
-            nombre_usuario = nombre_entry.get().strip()
+            nombre_usuario = self.autocorregir_cadena(nombre_entry.get().strip())
             libro_id = l_entry.get().strip()
-            titulo_reportado = titulo_entry.get().strip()
-            autor_reportado = autor_entry.get().strip()
+            titulo_reportado = self.autocorregir_cadena(titulo_entry.get().strip())
+            autor_reportado = self.autocorregir_cadena(autor_entry.get().strip())
             fecha_p = fp_entry.get().strip()
             fecha_d = fd_entry.get().strip()
             if not nombre_usuario:
@@ -1621,7 +1832,7 @@ class BibliotecaApp(tk.Tk):
 
         def devolver():
             usuario_id = u_entry.get().strip()
-            nombre_usuario = nombre_entry.get().strip()
+            nombre_usuario = self.autocorregir_cadena(nombre_entry.get().strip())
             libro_id = l_entry.get().strip()
             if usuario_id not in usuarios or libro_id not in libros:
                 messagebox.showwarning(
@@ -1891,7 +2102,7 @@ class BibliotecaApp(tk.Tk):
             if not usuario_obj:
                 messagebox.showwarning("Error", "Usuario no encontrado.")
                 return
-            actividad = act_entry.get().strip()
+            actividad = self.autocorregir_cadena(act_entry.get().strip())
             if not actividad:
                 messagebox.showwarning("Error", "Escriba una actividad.")
                 return
