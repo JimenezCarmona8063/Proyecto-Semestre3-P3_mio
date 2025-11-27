@@ -11,110 +11,197 @@ from datetime import datetime
 
 # ---------------- ESTRUCTURAS DE DATOS -------------
 
+
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.next = None
+
+
+class Queue:
+    def __init__(self, data=None):
+        self.front = None
+        self.rear = None
+        self.size = 0
+
+        if data:
+            try:
+                for d in data:
+                    self.enqueue(d)
+            except Exception:
+                self.enqueue(data)
+
+    def enqueue(self, data):
+        new_node = Node(data)
+        if self.is_empty():
+            self.front = self.rear = new_node
+        else:
+            self.rear.next = new_node
+            self.rear = new_node
+        self.size += 1
+
+    def dequeue(self):
+        if self.is_empty():
+            return None
+
+        data_out = self.front.data
+        self.front = self.front.next
+        if not self.front:
+            self.rear = None
+
+        self.size -= 1
+        return data_out
+
+    def peek(self):
+        if self.is_empty():
+            return None
+        return self.front.data
+
+    def length(self):
+        return self.size
+
+    def is_empty(self):
+        return self.rear is None
+
+    def __repr__(self):
+        if self.is_empty():
+            return ""
+        current = self.front
+        values = []
+        while current:
+            values.append(str(current.data))
+            current = current.next
+        return ", ".join(values)
+
+
+class LinkedList:
+    def __init__(self):
+        self.head = None
+        self.tail = None
+
+    def agregar(self, dato):
+        new_node = Node(dato)
+        if self.head is None:
+            self.head = self.tail = new_node
+        else:
+            self.tail.next = new_node
+            self.tail = new_node
+
+    def is_empty(self):
+        return self.head is None
+
+    def __iter__(self):
+        current = self.head
+        while current:
+            yield current.data
+            current = current.next
+
+
+class QHeapNode:
+    def __init__(self, key, data):
+        self.key = key
+        self.data = data
+
+
+class QHeap:
+    def __init__(self, is_min_heap=True):
+        self.nodes = []
+        self.is_min_heap = is_min_heap
+
+    def is_empty(self):
+        return len(self.nodes) == 0
+
+    def compare(self, a, b):
+        return a < b if self.is_min_heap else a > b
+
+    def _bubble_up(self, index):
+        parent = (index - 1) // 2
+        while index > 0 and self.compare(self.nodes[index].key, self.nodes[parent].key):
+            self.nodes[index], self.nodes[parent] = self.nodes[parent], self.nodes[index]
+            index = parent
+            parent = (index - 1) // 2
+
+    def _heapify(self, index):
+        size = len(self.nodes)
+        smallest = index
+        left = 2 * index + 1
+        right = 2 * index + 2
+
+        if left < size and self.compare(self.nodes[left].key, self.nodes[smallest].key):
+            smallest = left
+        if right < size and self.compare(self.nodes[right].key, self.nodes[smallest].key):
+            smallest = right
+
+        if smallest != index:
+            self.nodes[index], self.nodes[smallest] = self.nodes[smallest], self.nodes[index]
+            self._heapify(smallest)
+
+    def enqueue(self, key, data):
+        new_node = QHeapNode(key, data)
+        self.nodes.append(new_node)
+        self._bubble_up(len(self.nodes) - 1)
+
+    def dequeue(self):
+        if self.is_empty():
+            return None
+
+        root = self.nodes[0]
+        last = self.nodes.pop()
+        if not self.is_empty():
+            self.nodes[0] = last
+            self._heapify(0)
+        return root
+
+    def elements_sorted(self):
+        return sorted(self.nodes, key=lambda n: n.key)
+
+
 class Cola:
     def __init__(self):
-        self._datos = []
+        self._cola = Queue()
 
     def encolar(self, elem):
-        self._datos.append(elem)
+        self._cola.enqueue(elem)
 
     def desencolar(self):
-        if self.esta_vacia():
-            return None
-        return self._datos.pop(0)
+        return self._cola.dequeue()
 
     def esta_vacia(self):
-        return len(self._datos) == 0
+        return self._cola.is_empty()
 
     def __len__(self):
-        return len(self._datos)
+        return self._cola.length()
 
 
-class NodoLista:
-    def __init__(self, dato):
-        self.dato = dato
-        self.sig = None
-
-
-class ListaEnlazada:
+class ListaEnlazada(LinkedList):
     """Lista enlazada simple para historial y préstamos."""
 
     def __init__(self):
-        self.cabeza = None
-        self.cola = None
-
-    def agregar(self, dato):
-        nuevo = NodoLista(dato)
-        if self.cabeza is None:
-            self.cabeza = self.cola = nuevo
-        else:
-            self.cola.sig = nuevo
-            self.cola = nuevo
-
-    def __iter__(self):
-        actual = self.cabeza
-        while actual:
-            yield actual.dato
-            actual = actual.sig
+        super().__init__()
 
 
 class ColaPrioridad:
-    """
-    Cola de prioridad implementada como heap mínimo.
-    Guarda tuplas (prioridad, contador, elemento).
-    """
+    """Cola de prioridad basada en heap mínimo."""
 
     def __init__(self):
-        self._heap = []
+        self._heap = QHeap(is_min_heap=True)
         self._contador = 0
-
-    def _subir(self, idx):
-        while idx > 0:
-            padre = (idx - 1) // 2
-            if self._heap[idx][0] < self._heap[padre][0]:
-                self._heap[idx], self._heap[padre] = self._heap[padre], self._heap[idx]
-                idx = padre
-            else:
-                break
-
-    def _bajar(self, idx):
-        n = len(self._heap)
-        while True:
-            izq = 2 * idx + 1
-            der = 2 * idx + 2
-            menor = idx
-            if izq < n and self._heap[izq][0] < self._heap[menor][0]:
-                menor = izq
-            if der < n and self._heap[der][0] < self._heap[menor][0]:
-                menor = der
-            if menor == idx:
-                break
-            self._heap[idx], self._heap[menor] = self._heap[menor], self._heap[idx]
-            idx = menor
 
     def insertar(self, prioridad, elem):
         self._contador += 1
-        self._heap.append((prioridad, self._contador, elem))
-        self._subir(len(self._heap) - 1)
+        self._heap.enqueue((prioridad, self._contador), elem)
 
     def extraer_min(self):
-        if self.esta_vacia():
+        nodo = self._heap.dequeue()
+        if not nodo:
             return None
-        minimo = self._heap[0]
-        ultimo = self._heap.pop()
-        if self._heap:
-            self._heap[0] = ultimo
-            self._bajar(0)
-        return minimo[2]
+        return nodo.data
 
     def esta_vacia(self):
-        return len(self._heap) == 0
+        return self._heap.is_empty()
 
     def elementos(self):
-        """Devuelve una lista ordenada de elementos (solo para mostrar)."""
-        copia = list(self._heap)
-        copia.sort(key=lambda x: x[0])
-        return [elem for _, _, elem in copia]
+        return [nodo.data for nodo in self._heap.elements_sorted()]
 
 
 # ---------- Algoritmo sobre cadenas (búsqueda) -----
@@ -1213,8 +1300,8 @@ class BibliotecaApp(tk.Tk):
                     "No hay registros devueltos por limpiar.",
                 )
                 return
-            prestamos_activos.cabeza = None
-            prestamos_activos.cola = None
+            prestamos_activos.head = None
+            prestamos_activos.tail = None
             for p in activos:
                 prestamos_activos.agregar(p)
             messagebox.showinfo(
