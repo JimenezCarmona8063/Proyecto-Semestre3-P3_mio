@@ -570,54 +570,6 @@ class BKTree:
                 self.__search(node.children[d], word, max_dist, results)
 
 
-# ===========================
-#       AUTOCORRECTOR COMPLETO
-# ===========================
-
-
-class AutoCorrector:
-    def __init__(self):
-        self.trie = Trie()
-        self.bktree = BKTree()
-
-    def add_word(self, word):
-        word = word.lower()
-        self.trie.insert(word)
-        self.bktree.add(word)
-
-    def autocomplete(self, prefix):
-        """Sugiere palabras que empiezan igual."""
-        return self.trie.autocomplete(prefix)
-
-    def autocorrect(self, word, max_dist=2):
-        """Sugiere palabras similares (corrige errores)."""
-        matches = self.bktree.search(word.lower(), max_dist)
-        matches.sort(key=lambda x: x[1])  # ordenar por menor distancia
-        return matches[:5]  # top 5
-
-
-# ===========================
-#            EJEMPLO
-# ===========================
-
-
-ac = AutoCorrector()
-
-diccionario = [
-    "hola", "holanda", "hole", "hilo", "hula",
-    "casa", "caso", "casita", "caseta",
-    "perro", "persona", "perrera"
-]
-
-for w in diccionario:
-    ac.add_word(w)
-
-print("Autocompletar 'ca':")
-print(ac.autocomplete("ca"))
-
-print("\nAutocorregir 'hols':")
-print(ac.autocorrect("hols"))
-
 # =======================================
 #  ALGORITMOS Y ESTRUCTURAS ADICIONALES
 # =======================================
@@ -960,12 +912,10 @@ class BibliotecaApp(tk.Tk):
         self.imagenes_libros = []
         self.demo_cargado = False
         self.registro_completado = False
-        self.autocorrector = AutoCorrector()
 
         self._configurar_estilos()
         self._crear_layout()
         self.cargar_datos_demo()  # llena con libros reales
-        self._sembrar_autocorrector()
 
     def _configurar_estilos(self):
         """Define una paleta y estilos coherentes para toda la interfaz."""
@@ -1311,40 +1261,16 @@ class BibliotecaApp(tk.Tk):
         widget_text.config(state="disabled")
 
     def autocorregir_cadena(self, texto):
-        if not texto:
-            return texto
-        palabras_corregidas = []
-        for palabra in texto.split():
-            if any(ch.isalpha() for ch in palabra):
-                sugerencias = self.autocorrector.autocorrect(palabra)
-                if sugerencias:
-                    palabras_corregidas.append(sugerencias[0][0])
-                else:
-                    palabras_corregidas.append(palabra)
-            else:
-                palabras_corregidas.append(palabra)
-        return " ".join(palabras_corregidas)
+        return texto
 
     def _alimentar_autocorrector_con_libro(self, libro):
-        for parte in [libro.titulo, libro.autor]:
-            for palabra in parte.split():
-                self.autocorrector.add_word(palabra)
-        for genero in libro.generos:
-            for palabra in genero.split():
-                self.autocorrector.add_word(palabra)
+        return None
 
     def _alimentar_autocorrector_con_usuario(self, usuario):
-        for palabra in usuario.nombre.split():
-            self.autocorrector.add_word(palabra)
-        for genero in usuario.generos_preferidos:
-            for palabra in genero.split():
-                self.autocorrector.add_word(palabra)
+        return None
 
     def _sembrar_autocorrector(self):
-        for libro in libros.values():
-            self._alimentar_autocorrector_con_libro(libro)
-        for usuario in usuarios.values():
-            self._alimentar_autocorrector_con_usuario(usuario)
+        return None
 
     # --------- Secciones de la interfaz ---------
 
