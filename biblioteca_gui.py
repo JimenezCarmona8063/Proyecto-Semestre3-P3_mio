@@ -668,6 +668,7 @@ libros_hash = HashMap()
 usuarios_map = Map()
 generos_registrados = Set()
 titulos_bst = BST()
+MAX_LIBROS = 10000
 
 
 def registrar_historial(usuario_id, descripcion):
@@ -677,6 +678,12 @@ def registrar_historial(usuario_id, descripcion):
     if not usuario:
         return
     usuario.historial.agregar(descripcion)
+
+
+def hay_capacidad_para_libros(cantidad=1):
+    """Verifica que el catálogo no exceda el límite definido."""
+
+    return len(libros) + cantidad <= MAX_LIBROS
 
 
 def registrar_libro_en_indices(libro):
@@ -1076,7 +1083,7 @@ class BibliotecaApp(tk.Tk):
             notificaciones.encolar(texto)
 
     def _generar_catalogo_masivo(self):
-        """Genera automáticamente más de dos mil libros adicionales."""
+        """Genera automáticamente un catálogo variado hasta el límite configurado."""
 
         generos_genericos = [
             "Tecnología",
@@ -1087,6 +1094,13 @@ class BibliotecaApp(tk.Tk):
             "Fantasía",
             "Autoayuda",
             "Ciencia",
+            "Poesía",
+            "Arte",
+            "Viajes",
+            "Misterio",
+            "Gastronomía",
+            "Salud",
+            "Economía",
         ]
         autores_genericos = [
             "Colección Editorial Aurora",
@@ -1095,20 +1109,60 @@ class BibliotecaApp(tk.Tk):
             "Red de Escritores Urbanos",
             "Laboratorio de Narrativas Digitales",
             "Archivo Cultural Andino",
+            "Círculo de Narradores del Pacífico",
+            "Observatorio de Ideas Globales",
+            "Taller de Crónicas del Desierto",
+            "Alianza de Letras del Norte",
+        ]
+        colecciones = [
+            "Crónicas",
+            "Manual",
+            "Guía",
+            "Atlas",
+            "Historias",
+            "Ensayos",
+            "Tratado",
+            "Compendio",
+            "Antología",
+            "Viajes",
+        ]
+        temas = [
+            "de la Era Digital",
+            "del Nuevo Mundo",
+            "del Conocimiento",
+            "de Exploradores",
+            "del Futuro Cercano",
+            "del Arte y Ciencia",
+            "sobre Comunidades",
+            "de Innovación",
+            "de Aprendizaje",
+            "de la Naturaleza Urbana",
         ]
 
-        total_deseado = 2100  # se suman a los libros base para superar 2000 registros
+        existentes = len(libros)
+        if existentes >= MAX_LIBROS:
+            return
+
+        espacio_disponible = MAX_LIBROS - existentes
         creados = 0
         idx = 1
-        while creados < total_deseado:
-            libro_id = f"DL{idx:04d}"
+        while creados < espacio_disponible:
+            libro_id = f"DL{idx:05d}"
             if libro_id in libros:
                 idx += 1
                 continue
-            titulo = f"Compendio Digital #{idx:04d}"
+            coleccion = colecciones[(idx - 1) % len(colecciones)]
+            tema = temas[((idx - 1) // len(colecciones)) % len(temas)]
+            titulo = f"{coleccion} {tema} #{idx:04d}"
             autor = autores_genericos[(idx - 1) % len(autores_genericos)]
-            genero = generos_genericos[(idx - 1) % len(generos_genericos)]
-            libros[libro_id] = Libro(libro_id, titulo, autor, [genero])
+            genero_principal = generos_genericos[(idx - 1) % len(generos_genericos)]
+            genero_secundario = generos_genericos[(idx // 2) % len(generos_genericos)]
+            libros[libro_id] = Libro(
+                libro_id,
+                titulo,
+                autor,
+                [genero_principal, genero_secundario],
+            )
             registrar_libro_en_indices(libros[libro_id])
             creados += 1
             idx += 1
@@ -1334,6 +1388,12 @@ class BibliotecaApp(tk.Tk):
             modal_usuario_entry.grid(row=5, column=1, padx=5, pady=2)
 
             def registrar_desde_modal():
+                if not hay_capacidad_para_libros():
+                    messagebox.showwarning(
+                        "Catálogo lleno",
+                        f"Se alcanzó el límite de {MAX_LIBROS} libros. Elimina alguno antes de agregar más.",
+                    )
+                    return
                 libro_id = modal_id_entry.get().strip()
                 if not libro_id:
                     messagebox.showwarning("Error", "El ID del libro es obligatorio.")

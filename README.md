@@ -32,7 +32,7 @@ Esto abrirá la interfaz gráfica descrita en el documento.
 
 Al iniciarse, la aplicación muestra un **menú principal con formulario de registro**. Hasta que completes ese registro inicial, el menú lateral solo mostrará dicha opción para que sigas el flujo solicitado "paso a paso"; una vez registrado, se habilitan las demás secciones. Además, se cargan automáticamente:
 
-- Un catálogo extendido con más de 2 100 libros para que las búsquedas siempre arrojen resultados.
+- Un catálogo extendido con hasta **10 000 libros** variados para que las búsquedas siempre arrojen resultados.
 - 5 usuarios con historiales poblados y preferencias de lectura.
 - Préstamos activos, reservas en la cola de prioridad y notificaciones iniciales.
 
@@ -40,7 +40,7 @@ Así, cada sección del menú muestra contenido real desde el primer arranque y 
 
 ## Flujo actual de gestión de libros
 
-- En la **esquina superior derecha** de la vista verás un buscador permanente; escribe el título/autor/género y pulsa *Enter* o el botón "Buscar" para filtrar los más de dos mil registros disponibles.
+- En la **esquina superior derecha** de la vista verás un buscador permanente; escribe el título/autor/género y pulsa *Enter* o el botón "Buscar" para filtrar los miles de registros disponibles (hasta 10 000). 
 - El botón "Ver todo" refresca el panel central para mostrar nuevamente el catálogo completo.
 - En la parte inferior solo hay dos acciones principales: **Agregar libro** (abre una ventana modal que solicita todos los datos del ejemplar antes de registrarlo) y **Eliminar libro** (usa el ID indicado en el formulario rápido).
 - Cada alta o baja se comunica mediante notificaciones y, si proporcionas un ID de usuario, la acción queda registrada en su historial.
