@@ -18,7 +18,7 @@ Cada sección demuestra el uso de estructuras de datos personalizadas como lista
 
 ## Aspecto visual
 
-La interfaz emplea una paleta cálida inspirada en bibliotecas (tonos marfil y verde) con botones de acento, campos suavizados y tablas estilizadas para que la navegación se sienta más cuidada sin alterar el flujo ya implementado.
+La interfaz emplea una paleta cálida inspirada en bibliotecas (marfil, verdes y dorados) con un **banner superior degradado**, botones de acento (incluido un estilo amarillo para acciones destacadas) y paneles tipo tarjeta. Los campos y tablas se mantienen suaves y legibles para que la navegación se sienta más cuidada sin alterar el flujo ya implementado.
 
 ## Ejecución
 

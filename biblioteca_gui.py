@@ -809,16 +809,19 @@ class BibliotecaApp(tk.Tk):
         """Define una paleta y estilos coherentes para toda la interfaz."""
 
         palette = {
-            "bg": "#f4f1ea",
+            "bg": "#f8f5f1",
             "panel": "#ffffff",
             "accent": "#5c7c6f",
-            "accent_dark": "#39594c",
+            "accent_dark": "#2f6655",
+            "accent_soft": "#9fb5a6",
+            "sun": "#f4c430",
             "text": "#2f2a28",
-            "muted": "#6d625c",
-            "border": "#d6cec6",
-            "input": "#fdfbf7",
+            "muted": "#736b65",
+            "border": "#d8cfc7",
+            "input": "#fefbf6",
         }
 
+        self.palette = palette
         self.configure(bg=palette["bg"])
         default_font = ("Segoe UI", 10)
         self.option_add("*Font", default_font)
@@ -840,7 +843,7 @@ class BibliotecaApp(tk.Tk):
             "Titulo.TLabel",
             background=palette["bg"],
             foreground=palette["accent_dark"],
-            font=("Georgia", 16, "bold"),
+            font=("Georgia", 17, "bold"),
         )
         style.configure(
             "Subtitulo.TLabel",
@@ -860,6 +863,29 @@ class BibliotecaApp(tk.Tk):
         style.map(
             "TButton",
             background=[("active", palette["accent_dark"])],
+            foreground=[("active", "#ffffff")],
+        )
+        style.configure(
+            "Accent.TButton",
+            background=palette["sun"],
+            foreground="#2f2a28",
+        )
+        style.map(
+            "Accent.TButton",
+            background=[("active", "#e3b000")],
+            foreground=[("active", "#2f2a28")],
+        )
+        style.configure(
+            "Ghost.TButton",
+            background=palette["panel"],
+            foreground=palette["accent_dark"],
+            borderwidth=1,
+            relief="solid",
+            bordercolor=palette["border"],
+        )
+        style.map(
+            "Ghost.TButton",
+            background=[("active", palette["accent_soft"])],
             foreground=[("active", "#ffffff")],
         )
         style.configure(
@@ -915,6 +941,7 @@ class BibliotecaApp(tk.Tk):
 
         # Acolchonado general para que los frames no se peguen a los bordes
         style.configure("Card.TFrame", background=palette["panel"], relief="flat", borderwidth=1)
+        style.configure("Hero.TFrame", background=palette["bg"])
         self.option_add("*TFrame.padding", 6)
 
 
@@ -922,12 +949,30 @@ class BibliotecaApp(tk.Tk):
     def _crear_layout(self):
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=4)
-        self.rowconfigure(0, weight=1)
+        self.rowconfigure(0, weight=0)
+        self.rowconfigure(1, weight=1)
+
+        # Franja superior decorativa
+        self.hero_frame = ttk.Frame(self, style="Hero.TFrame")
+        self.hero_frame.grid(row=0, column=0, columnspan=2, sticky="nsew")
+        self.hero_frame.columnconfigure(0, weight=1)
+        self.hero_canvas = tk.Canvas(
+            self.hero_frame,
+            height=120,
+            highlightthickness=0,
+            bg=self.palette["bg"],
+        )
+        self.hero_canvas.grid(row=0, column=0, sticky="nsew")
+        self.hero_canvas.bind("<Configure>", self._pintar_banner)
 
         self.frame_menu = ttk.Frame(self, padding=10, style="Card.TFrame")
-        self.frame_menu.grid(row=0, column=0, sticky="nsw")
+        self.frame_menu.grid(row=1, column=0, sticky="nsw")
 
-        ttk.Label(self.frame_menu, text="Menú Principal", font=("Arial", 12, "bold")).pack(pady=5)
+        ttk.Label(
+            self.frame_menu,
+            text="Menú Principal",
+            font=("Arial", 12, "bold"),
+        ).pack(pady=5)
 
         self.menu_opciones_secundarias = [
             ("Gestión de Libros", self.mostrar_libros),
@@ -945,11 +990,68 @@ class BibliotecaApp(tk.Tk):
 
         # Frame donde se cambian las secciones
         self.frame_contenido = ttk.Frame(self, padding=14, style="Card.TFrame")
-        self.frame_contenido.grid(row=0, column=1, sticky="nsew")
+        self.frame_contenido.grid(row=1, column=1, sticky="nsew")
         self.frame_contenido.rowconfigure(1, weight=1)
         self.frame_contenido.columnconfigure(0, weight=1)
 
         self.mostrar_inicio_registro()
+
+    def _pintar_banner(self, event):
+        """Dibuja un banner con degradado y distintivos suaves."""
+
+        canvas = event.widget
+        canvas.delete("all")
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
+        colores = [self.palette["accent"], self.palette["accent_soft"], self.palette["sun"]]
+        segmentos = len(colores) - 1
+        for i in range(segmentos):
+            x0 = int((w / segmentos) * i)
+            x1 = int((w / segmentos) * (i + 1))
+            canvas.create_rectangle(x0, 0, x1, h, fill=colores[i], outline="")
+
+        canvas.create_rectangle(0, h - 50, w, h, fill=self.palette["panel"], outline="")
+        canvas.create_text(
+            20,
+            h / 2,
+            anchor="w",
+            text="Biblioteca creativa",
+            font=("Georgia", 20, "bold"),
+            fill="#ffffff",
+        )
+        canvas.create_text(
+            22,
+            h / 2 + 26,
+            anchor="w",
+            text="Catálogo vivo · Experiencias cálidas · Datos listos",
+            font=("Segoe UI", 10),
+            fill="#ffffff",
+        )
+        chip_y = h - 25
+        canvas.create_text(
+            20,
+            chip_y,
+            anchor="w",
+            text="Gestión de libros",
+            font=("Segoe UI", 10, "bold"),
+            fill=self.palette["accent_dark"],
+        )
+        canvas.create_text(
+            200,
+            chip_y,
+            anchor="w",
+            text="Usuarios felices",
+            font=("Segoe UI", 10, "bold"),
+            fill=self.palette["accent_dark"],
+        )
+        canvas.create_text(
+            360,
+            chip_y,
+            anchor="w",
+            text="Préstamos claros",
+            font=("Segoe UI", 10, "bold"),
+            fill=self.palette["accent_dark"],
+        )
 
     def _render_menu_buttons(self):
         """Muestra solo el registro hasta que el usuario cree una cuenta."""
