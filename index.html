@@ -65,7 +65,7 @@
       <article class="panel city-panel">
         <div class="panel-header">
           <div>
-            <p class="eyebrow">Heatmap de Lotes</p>
+            <p class="eyebrow">Ciudad de Edificios</p>
             <h3>Plano de DataCity</h3>
           </div>
           <div class="legend" aria-label="Leyenda de colores">
@@ -74,7 +74,12 @@
             <span><i class="moving"></i> Moviendo</span>
           </div>
         </div>
-        <div id="memoryGrid" class="memory-grid" aria-label="Mapa de calor de bloques de memoria"></div>
+        <div class="city-stage-wrap">
+          <div class="city-grid-lines" aria-hidden="true"></div>
+          <div id="buildingCity" class="building-city" aria-label="Edificios de procesos de memoria"></div>
+        </div>
+        <p class="city-hint">Edificios altos = procesos con más MB. Edificios bajos = procesos pequeños. Su posición muestra qué tan regada está la memoria.</p>
+        <div id="memoryGrid" class="memory-grid mini-map" aria-label="Mapa de calor de bloques de memoria"></div>
       </article>
 
       <aside class="panel controls-panel">

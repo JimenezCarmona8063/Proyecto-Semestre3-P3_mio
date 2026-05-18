@@ -16,7 +16,9 @@ Aplicación web estática para explicar, de forma visual, cómo se ocupa, libera
 - **Demoler zona:** libera un proceso y deja huecos en el mapa.
 - **Tormenta E/S:** simula actividad intensa de lectura/escritura y cambios rápidos.
 - **Desfragmentar:** compacta todos los bloques ocupados en un solo vecindario y deja un espacio libre continuo.
-- **Heatmap y skyline:** muestra la memoria como mapa de calor y como horizonte de ciudad.
+- **Ciudad de edificios:** cada proceso aparece como un edificio; entre más alto/grande, más memoria consume.
+- **Movimiento visible:** al desfragmentar, los edificios se desplazan hacia un vecindario compacto.
+- **Heatmap y skyline:** muestra la memoria como mapa de calor miniatura y como horizonte de ciudad.
 
 ## Cómo ejecutarla
 

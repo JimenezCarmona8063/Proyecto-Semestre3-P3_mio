@@ -8,6 +8,7 @@ let ioRate = 0;
 let defragging = false;
 
 const grid = document.querySelector("#memoryGrid");
+const buildingCity = document.querySelector("#buildingCity");
 const skyline = document.querySelector("#skyline");
 const statusText = document.querySelector("#statusText");
 const stressInput = document.querySelector("#cityStress");
@@ -99,7 +100,9 @@ function defragmentCity() {
   defragging = true;
   setStatus("Desfragmentando: drones de mudanza reacomodan edificios al distrito central...");
 
+  buildingCity.classList.add("is-defragging");
   document.querySelectorAll(".block.used").forEach(block => block.classList.add("moving"));
+  document.querySelectorAll(".building").forEach(building => building.classList.add("moving"));
 
   setTimeout(() => {
     const usedBlocks = memory.filter(block => block.used);
@@ -113,6 +116,10 @@ function defragmentCity() {
     defragging = false;
     render();
     setStatus("Desfragmentación completa: queda un mega-lote libre para procesos grandes.");
+    setTimeout(() => {
+      buildingCity.classList.remove("is-defragging");
+      document.querySelectorAll(".building").forEach(building => building.classList.remove("moving"));
+    }, 900);
   }, 950);
 }
 
@@ -130,6 +137,7 @@ function simulateBurst() {
 
 function render() {
   renderGrid();
+  renderBuildings();
   renderSkyline();
   updateMetrics();
 }
@@ -147,16 +155,90 @@ function renderGrid() {
   });
 }
 
+function renderBuildings() {
+  const processes = getProcessSummaries();
+  const activeIds = new Set(processes.map(process => String(process.id)));
+
+  [...buildingCity.querySelectorAll(".building")].forEach(building => {
+    if (!activeIds.has(building.dataset.processId)) building.remove();
+  });
+
+  processes.forEach(process => {
+    let building = buildingCity.querySelector(`[data-process-id="${process.id}"]`);
+    if (!building) {
+      building = document.createElement("article");
+      building.className = "building entering";
+      building.dataset.processId = process.id;
+      building.innerHTML = `
+        <span class="antenna"></span>
+        <span class="memory-label"></span>
+        <span class="window-grid"></span>
+        <span class="door"></span>
+      `;
+      buildingCity.appendChild(building);
+      requestAnimationFrame(() => building.classList.remove("entering"));
+    }
+
+    const sizeMb = process.size * BLOCK_MB;
+    const height = Math.min(250, 48 + process.size * 16);
+    const width = Math.min(92, 34 + process.size * 4);
+    const col = process.anchor % 24;
+    const row = Math.floor(process.anchor / 24);
+    const x = 2 + (col / 23) * 88;
+    const y = 12 + row * 7;
+
+    building.style.setProperty("--building-color", process.color);
+    building.style.left = `${x}%`;
+    building.style.width = `${width}px`;
+    building.style.height = `${height}px`;
+    building.style.transform = `translateX(-50%) translateY(-${y}px)`;
+    building.style.zIndex = String(100 + row + process.size);
+    building.title = `Proceso ${process.id}: ${sizeMb} MB en ${process.size} bloques`;
+    building.querySelector(".memory-label").textContent = `${sizeMb} MB`;
+    building.querySelector(".window-grid").style.setProperty("--floors", Math.max(2, process.size));
+  });
+}
+
 function renderSkyline() {
   skyline.innerHTML = "";
-  memory.forEach((block, index) => {
+  const processes = getProcessSummaries();
+  processes.forEach(process => {
     const tower = document.createElement("span");
-    tower.className = `tower${block.used ? "" : " free"}`;
-    const height = block.used ? 34 + ((index * 17) % 150) : 8 + ((index * 5) % 30);
-    tower.style.height = `${height}px`;
-    if (block.used && block.color) tower.style.background = `linear-gradient(180deg, ${block.color}, #102dff)`;
+    tower.className = "tower";
+    tower.style.height = `${Math.min(190, 32 + process.size * 14)}px`;
+    tower.style.flexGrow = String(Math.max(1, process.size / 2));
+    tower.style.background = `linear-gradient(180deg, ${process.color}, #102dff)`;
+    tower.title = `Proceso ${process.id}: ${process.size * BLOCK_MB} MB`;
     skyline.appendChild(tower);
   });
+
+  for (let i = processes.length; i < 34; i++) {
+    const emptyLot = document.createElement("span");
+    emptyLot.className = "tower free";
+    emptyLot.style.height = `${8 + ((i * 5) % 30)}px`;
+    skyline.appendChild(emptyLot);
+  }
+}
+
+function getProcessSummaries() {
+  const processes = new Map();
+  memory.forEach((block, index) => {
+    if (!block.used) return;
+    if (!processes.has(block.processId)) {
+      processes.set(block.processId, {
+        id: block.processId,
+        color: block.color,
+        size: 0,
+        indexes: [],
+        anchor: index
+      });
+    }
+    const process = processes.get(block.processId);
+    process.size++;
+    process.indexes.push(index);
+    process.anchor = Math.min(process.anchor, index);
+  });
+  return [...processes.values()].sort((a, b) => a.anchor - b.anchor);
 }
 
 function updateMetrics() {
