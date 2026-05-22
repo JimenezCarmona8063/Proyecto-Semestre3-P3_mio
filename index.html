@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DataCity | Metrópolis de Memoria Cyberpunk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="noise"></div>
+  <main class="app-shell">
+    <section class="hero panel">
+      <div>
+        <p class="eyebrow">Memoria y Sistema de Archivos</p>
+        <h1>DataCity</h1>
+        <h2>La RAM como una metrópolis cyberpunk</h2>
+        <p class="hero-copy">
+          Cada lote representa un bloque de memoria. Los edificios neón son procesos, archivos o páginas ocupadas.
+          Cuando la ciudad se fragmenta, quedan zonas baldías entre construcciones. Al desfragmentar, los edificios
+          se reacomodan en un vecindario compacto para liberar un mega-lote continuo.
+        </p>
+      </div>
+      <div class="city-orb" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+    </section>
+
+    <section class="dashboard">
+      <article class="metric-card">
+        <span class="metric-icon">🏙️</span>
+        <p>Población Total</p>
+        <strong id="populationMetric">0 MB</strong>
+        <small>Memoria ocupada</small>
+      </article>
+      <article class="metric-card">
+        <span class="metric-icon">🕳️</span>
+        <p>Zonas Baldías</p>
+        <strong id="holesMetric">0</strong>
+        <small>Huecos libres</small>
+      </article>
+      <article class="metric-card danger">
+        <span class="metric-icon">☣️</span>
+        <p>Contaminación</p>
+        <strong id="fragmentationMetric">0%</strong>
+        <small>Fragmentación actual</small>
+      </article>
+      <article class="metric-card">
+        <span class="metric-icon">⚡</span>
+        <p>Consumo Eléctrico</p>
+        <strong id="faultsMetric">0/s</strong>
+        <small>Page faults simulados</small>
+      </article>
+      <article class="metric-card">
+        <span class="metric-icon">🏗️</span>
+        <p>Nuevas Construcciones</p>
+        <strong id="ioMetric">0 MB/s</strong>
+        <small>Lectura / escritura E/S</small>
+      </article>
+    </section>
+
+    <section class="workspace">
+      <article class="panel city-panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Ciudad de Edificios</p>
+            <h3>Plano de DataCity</h3>
+          </div>
+          <div class="legend" aria-label="Leyenda de colores">
+            <span><i class="free"></i> Libre</span>
+            <span><i class="used"></i> Ocupado</span>
+            <span><i class="moving"></i> Moviendo</span>
+          </div>
+        </div>
+        <div class="city-stage-wrap">
+          <div class="city-grid-lines" aria-hidden="true"></div>
+          <div id="buildingCity" class="building-city" aria-label="Edificios de procesos de memoria"></div>
+        </div>
+        <p class="city-hint">Edificios altos = procesos con más MB. Edificios bajos = procesos pequeños. Su posición muestra qué tan regada está la memoria.</p>
+        <div id="memoryGrid" class="memory-grid mini-map" aria-label="Mapa de calor de bloques de memoria"></div>
+      </article>
+
+      <aside class="panel controls-panel">
+        <p class="eyebrow">Cabina de Control</p>
+        <h3>Simulador</h3>
+        <label for="cityStress">Caos urbano</label>
+        <input id="cityStress" type="range" min="1" max="10" value="6" />
+        <div class="button-grid">
+          <button id="allocateBtn" class="primary">Construir proceso</button>
+          <button id="freeBtn">Demoler zona</button>
+          <button id="burstBtn">Tormenta E/S</button>
+          <button id="defragBtn" class="accent">Desfragmentar</button>
+        </div>
+        <div class="explain-box">
+          <h4>¿Qué se demuestra?</h4>
+          <p>
+            La app simula asignación y liberación de bloques. Si hay muchos huecos separados, la contaminación sube.
+            Al presionar <b>Desfragmentar</b>, los bloques ocupados se compactan como edificios que se mudan juntos.
+          </p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel skyline-panel">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Skyline de Memoria</p>
+          <h3>Barra apilada tipo horizonte</h3>
+        </div>
+        <p id="statusText" class="status-text">Ciudad lista para simular.</p>
+      </div>
+      <div id="skyline" class="skyline" aria-label="Gráfica de barras de memoria"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
